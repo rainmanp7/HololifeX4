@@ -8,9 +8,6 @@ package body EmergeOS is
    type Byte is mod 2**8;
    type Word is mod 2**16; 
    type DWord is mod 2**32;
-   
-   pragma Unreferenced (Word);
-   pragma Unreferenced (DWord);
 
    -- ================================
    -- VGA CONSOLE SUBSYSTEM (Pure Ada)
@@ -184,8 +181,6 @@ package body EmergeOS is
    Max_Entities : constant := 256;
    Entity_Table : array (1 .. Max_Entities) of Entity_Record;
    Entity_Count : Natural := 0;
-   
-   pragma Unreferenced (Entity_Table);
 
    -- State initialization procedure
    procedure Initialize_Entities is
