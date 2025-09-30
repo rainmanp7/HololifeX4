@@ -8,6 +8,9 @@ package body EmergeOS is
    type Byte is mod 2**8;
    type Word is mod 2**16; 
    type DWord is mod 2**32;
+   
+   pragma Unreferenced (Word);
+   pragma Unreferenced (DWord);
 
    -- ================================
    -- VGA CONSOLE SUBSYSTEM (Pure Ada)
@@ -154,10 +157,7 @@ package body EmergeOS is
                   end loop;
                   Holo_Allocated_Blocks := Holo_Allocated_Blocks + Blocks_Needed;
                   Holo_Free_Blocks := Holo_Free_Blocks - Blocks_Needed;
-                  
-                  -- FIXED: Use explicit type conversion for address arithmetic
-                  return DWord(HOLO_BASE) + 
-                         DWord(Start_I * HOLO_MATRIX_SIZE + Start_J) * 16;
+                  return DWord(HOLO_BASE + (Start_I * HOLO_MATRIX_SIZE + Start_J) * 16);
                end if;
             else
                Found_Blocks := 0;
@@ -184,6 +184,8 @@ package body EmergeOS is
    Max_Entities : constant := 256;
    Entity_Table : array (1 .. Max_Entities) of Entity_Record;
    Entity_Count : Natural := 0;
+   
+   pragma Unreferenced (Entity_Table);
 
    -- State initialization procedure
    procedure Initialize_Entities is
