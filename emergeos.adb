@@ -100,7 +100,7 @@ package body EmergeOS is
    -- =======================================
    -- HOLOGRAPHIC MEMORY MANAGER (Pure Ada)
    -- =======================================
-   HOLO_BASE : constant DWord := 16#A0000#;
+   HOLO_BASE : constant := 16#A0000#;
    HOLO_MATRIX_SIZE : constant := 512;
    
    type Holo_Matrix_Type is array (0 .. HOLO_MATRIX_SIZE-1, 
@@ -154,7 +154,10 @@ package body EmergeOS is
                   end loop;
                   Holo_Allocated_Blocks := Holo_Allocated_Blocks + Blocks_Needed;
                   Holo_Free_Blocks := Holo_Free_Blocks - Blocks_Needed;
-                  return DWord(HOLO_BASE + (Start_I * HOLO_MATRIX_SIZE + Start_J) * 16);
+                  
+                  -- FIXED: Use explicit type conversion for address arithmetic
+                  return DWord(HOLO_BASE) + 
+                         DWord(Start_I * HOLO_MATRIX_SIZE + Start_J) * 16;
                end if;
             else
                Found_Blocks := 0;
