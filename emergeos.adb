@@ -8,9 +8,6 @@ package body EmergeOS is
    type Byte is mod 2**8;
    type Word is mod 2**16; 
    type DWord is mod 2**32;
-   
-   pragma Unreferenced (Word);
-   pragma Unreferenced (DWord);
 
    -- ================================
    -- VGA CONSOLE SUBSYSTEM (Pure Ada)
@@ -103,7 +100,7 @@ package body EmergeOS is
    -- =======================================
    -- HOLOGRAPHIC MEMORY MANAGER (Pure Ada)
    -- =======================================
-   HOLO_BASE : constant := 16#A0000#;
+   HOLO_BASE : constant DWord := 16#A0000#;
    HOLO_MATRIX_SIZE : constant := 512;
    
    type Holo_Matrix_Type is array (0 .. HOLO_MATRIX_SIZE-1, 
@@ -184,8 +181,6 @@ package body EmergeOS is
    Max_Entities : constant := 256;
    Entity_Table : array (1 .. Max_Entities) of Entity_Record;
    Entity_Count : Natural := 0;
-   
-   pragma Unreferenced (Entity_Table);
 
    -- State initialization procedure
    procedure Initialize_Entities is
