@@ -1,4 +1,5 @@
 name: HoloXlife Pure Ada OS Build and Boot Test
+
 on:
   push:
     branches:
@@ -7,15 +8,18 @@ on:
     branches:
       - main
   workflow_dispatch:
+
 jobs:
   build-and-test-pure-ada:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    
     env:
       IMAGE_NAME: emergeos.img
       SERIAL_LOG: serial.log
       BOCHS_LOG: bochs.log
       BOCHS_CONFIG: bochsrc.txt
+    
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -29,7 +33,7 @@ jobs:
           path: |
             /var/cache/apt/archives
             /var/lib/apt/lists
-          key: ${{ runner.os }}-pure-ada-${{ hashFiles('**/Makefile') }}-v4
+          key: ${{ runner.os }}-pure-ada-${{ hashFiles('**/Makefile') }}-v5
           restore-keys: |
             ${{ runner.os }}-pure-ada-
 
@@ -123,9 +127,11 @@ jobs:
         run: |
           echo "🔨 Building HoloXlife Pure Ada Operating System..."
           echo "=========================================="
+          
           # Show available targets
           echo "Available Makefile targets:"
           make info 2>/dev/null || echo "No info target available"
+          
           # Build step by step with detailed logging
           echo ""
           echo "Step 1: Creating Ada configuration..."
@@ -134,21 +140,27 @@ jobs:
             echo "✅ gnat.adc created:"
             cat gnat.adc
           fi
+          
           echo ""
           echo "Step 2: Compiling Pure Ada kernel..."
           make emergeos.o || { echo "❌ Failed to compile Ada kernel"; exit 1; }
+          
           echo ""
           echo "Step 3: Compiling bootloader..."
           make boot.o || { echo "❌ Failed to compile bootloader"; exit 1; }
+          
           echo ""
           echo "Step 4: Linking Pure Ada OS kernel..."
           make kernel.bin || { echo "❌ Failed to link Ada OS kernel"; exit 1; }
+          
           echo ""
           echo "Step 5: Building bootloader..."
           make boot.bin || { echo "❌ Failed to build bootloader"; exit 1; }
+          
           echo ""
           echo "Step 6: Creating HoloXlife OS disk image..."
           make $IMAGE_NAME || { echo "❌ Failed to create OS image"; exit 1; }
+          
           # Verify build results
           if [ ! -f "$IMAGE_NAME" ]; then
             echo "❌ $IMAGE_NAME not created"
@@ -156,6 +168,7 @@ jobs:
             ls -la
             exit 1
           fi
+          
           echo ""
           echo "✅ HoloXlife Pure Ada OS Build SUCCESSFUL!"
           echo "=========================================="
@@ -174,6 +187,7 @@ jobs:
         run: |
           echo "🔍 HoloXlife Pure Ada Kernel Analysis..."
           echo "======================================"
+          
           if [ -f kernel.bin ]; then
             KERNEL_SIZE=$(stat -c%s kernel.bin)
             SECTORS_NEEDED=$(( (KERNEL_SIZE + 511) / 512 ))
@@ -191,12 +205,13 @@ jobs:
           else
             echo "❌ kernel.bin not found"
           fi
+          
           if [ -f boot.bin ]; then
             echo ""
             echo "Bootloader size: $(stat -c%s boot.bin) bytes"
             echo "Boot signature verification:"
             if command -v xxd >/dev/null 2>&1; then
-              SIGNATURE=$(xxd -s -2 boot.bin | cut -d' ' -f2)
+              SIGNATURE=$(xxd -s -2 -l 2 boot.bin | awk '{print $2}')
               if [ "$SIGNATURE" = "55aa" ]; then
                 echo "✅ Boot signature correct (0x55AA)"
               else
@@ -208,6 +223,7 @@ jobs:
           else
             echo "❌ boot.bin not found"
           fi
+          
           echo ""
           echo "📊 Pure Ada OS Image Analysis:"
           if [ -f "$IMAGE_NAME" ]; then
@@ -231,7 +247,7 @@ jobs:
           log: bochs.log
           logprefix: %t%e%d
           panic: action=report
-          error: action=report  
+          error: action=report
           info: action=report
           debug: action=ignore
           debugger_log: -
@@ -250,38 +266,46 @@ jobs:
         run: |
           echo "🚀 Testing HoloXlife Pure Ada OS Boot..."
           echo "======================================"
+          
           # Verify image exists
           if [ ! -f "$IMAGE_NAME" ]; then
             echo "❌ OS Image $IMAGE_NAME not found"
             ls -la *.img 2>/dev/null || echo "No .img files found"
             exit 1
           fi
+          
           # Clean previous logs
           rm -f "$BOCHS_LOG" "$SERIAL_LOG" bochs_output.log bochs_error.log
+          
           echo "Starting virtual display for Pure Ada OS test..."
           export DISPLAY=:99
           Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
           XVFB_PID=$!
           sleep 3
+          
           # Verify virtual display
           if ! kill -0 $XVFB_PID 2>/dev/null; then
             echo "❌ Failed to start virtual display"
             exit 1
           fi
+          
           echo "Booting HoloXlife Pure Ada Operating System..."
           echo "Expected to see:"
           echo "- HoloXlife OS v1.0 - Pure Ada Implementation"
           echo "- Holographic Memory System initialization"
           echo "- Entity creation (CPU/Memory/Device/Filesystem)"
           echo "- Boot completion message"
+          
           # Run Bochs with extended timeout for Pure Ada OS
           set +e
           timeout 30s bochs -q -f "$BOCHS_CONFIG" > bochs_output.log 2> bochs_error.log
           BOCHS_EXIT=$?
           set -e
+          
           # Cleanup
           kill $XVFB_PID 2>/dev/null || true
           wait $XVFB_PID 2>/dev/null || true
+          
           echo ""
           echo "Pure Ada OS boot test completed with exit code: $BOCHS_EXIT"
           if [ $BOCHS_EXIT -eq 124 ]; then
@@ -296,17 +320,19 @@ jobs:
         run: |
           echo "📊 HoloXlife Pure Ada OS Boot Analysis"
           echo "====================================="
+          
           # Check for Pure Ada OS specific messages
           SUCCESS_INDICATORS=(
             "HoloXlife OS"
             "Pure Ada"
-            "Ada Implementation" 
+            "Ada Implementation"
             "Holographic Memory"
             "Entity"
             "Boot.*Complete"
             "INITIALIZED"
             "ACTIVE"
           )
+          
           ERROR_INDICATORS=(
             "exception"
             "fault"
@@ -316,6 +342,7 @@ jobs:
             "ERROR"
             "crash"
           )
+          
           echo "1. 🖥️  BOCHS CONSOLE OUTPUT:"
           if [ -f bochs_output.log ] && [ -s bochs_output.log ]; then
             echo "--- Bochs console output ---"
@@ -323,6 +350,7 @@ jobs:
           else
             echo "No Bochs console output captured"
           fi
+          
           echo ""
           echo "2. 🚨 BOCHS ERROR OUTPUT:"
           if [ -f bochs_error.log ] && [ -s bochs_error.log ]; then
@@ -331,47 +359,54 @@ jobs:
           else
             echo "✅ No Bochs errors"
           fi
+          
           echo ""
           echo "3. 📋 BOCHS INTERNAL LOG ANALYSIS:"
           if [ -f "$BOCHS_LOG" ] && [ -s "$BOCHS_LOG" ]; then
             echo "--- Last 100 lines of Bochs log ---"
             tail -100 "$BOCHS_LOG"
+            
             echo ""
             echo "🔍 Pure Ada OS Boot Success Analysis:"
             FOUND_SUCCESS=0
             for indicator in "${SUCCESS_INDICATORS[@]}"; do
-              if grep -i "$indicator" "$BOCHS_LOG" >/dev/null 2>&1; then
+              if grep -iE "$indicator" "$BOCHS_LOG" >/dev/null 2>&1; then
                 echo "✅ Found: $indicator"
                 FOUND_SUCCESS=1
-                grep -i "$indicator" "$BOCHS_LOG" | tail -3
+                grep -iE "$indicator" "$BOCHS_LOG" | tail -3
               fi
             done
+            
             if [ $FOUND_SUCCESS -eq 0 ]; then
               echo "⚠️ No Pure Ada OS boot success indicators found"
             fi
+            
             echo ""
             echo "🚨 Error Analysis:"
             FOUND_ERRORS=0
             for indicator in "${ERROR_INDICATORS[@]}"; do
-              if grep -i "$indicator" "$BOCHS_LOG" >/dev/null 2>&1; then
+              if grep -iE "$indicator" "$BOCHS_LOG" >/dev/null 2>&1; then
                 echo "❌ Found error: $indicator"
                 FOUND_ERRORS=1
-                grep -i "$indicator" "$BOCHS_LOG" | tail -3
+                grep -iE "$indicator" "$BOCHS_LOG" | tail -3
               fi
             done
+            
             if [ $FOUND_ERRORS -eq 0 ]; then
               echo "✅ No critical errors detected"
             fi
           else
             echo "No Bochs internal log available"
           fi
+          
           echo ""
           echo "4. 📺 SERIAL DEBUG OUTPUT:"
           if [ -f "$SERIAL_LOG" ] && [ -s "$SERIAL_LOG" ]; then
             echo "--- Pure Ada OS Serial Debug Output ---"
             cat "$SERIAL_LOG"
+            
             # Check serial output for Ada OS messages
-            if grep -i "HoloXlife\|Pure Ada\|Ada.*Boot" "$SERIAL_LOG" >/dev/null 2>&1; then
+            if grep -iE "HoloXlife|Pure Ada|Ada.*Boot" "$SERIAL_LOG" >/dev/null 2>&1; then
               echo "✅ Pure Ada OS debug messages found in serial output"
             else
               echo "⚠️ No Pure Ada OS messages in serial output"
@@ -379,17 +414,18 @@ jobs:
           else
             echo "No serial debug output (this is normal for console-only output)"
           fi
+          
           echo ""
           echo "5. 📈 HOLOXLIFE PURE ADA OS SUMMARY:"
           echo "======================================"
           echo "OS Name: HoloXlife"
           echo "Language: 100% Pure Ada (Zero C code)"
           echo "Compiler: GNAT"
-          echo "Target: i386 bare metal" 
+          echo "Target: i386 bare metal"
           echo "Features: Holographic Memory (512x512), Entity Management"
           echo "Image: $IMAGE_NAME"
           if [ -f "$IMAGE_NAME" ]; then
-            echo "Image Size: $(stat -L -c%s "$IMAGE_NAME" 2>/dev/null || echo "unknown") bytes"
+            echo "Image Size: $(stat -c "$IMAGE_NAME" 2>/dev/null || echo "unknown") bytes"
           fi
           echo "Boot Test: Completed"
           echo ""
@@ -403,6 +439,7 @@ jobs:
           if [ -f "$IMAGE_NAME" ]; then
             echo "Running 10-second QEMU test..."
             timeout 10s qemu-system-i386 -fda "$IMAGE_NAME" -serial stdio -nographic -no-reboot > qemu_output.log 2>&1 || true
+            
             echo "QEMU output:"
             if [ -f qemu_output.log ]; then
               cat qemu_output.log
