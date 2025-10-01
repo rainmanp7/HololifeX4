@@ -8,6 +8,9 @@ package Entities is
    use Types;
    use Holographic_Vectors;
    
+   -- Define array type for specialization scores
+   type Specialization_Scores_Array is array (Entity_Domain_Index) of Float;
+
    -- Enhanced entity record (from C kernel)
    type Entity_Record is record
       ID                   : Natural;
@@ -18,7 +21,7 @@ package Entities is
       Is_Active            : Boolean;
       
       -- Specialization and evolution
-      Specialization_Scores : array (Entity_Domain_Index) of Float;
+      Specialization_Scores : Specialization_Scores_Array;
       Resource_Allocation   : Float;
       Confidence           : Float;
       Domain_Name          : String(1..32);
