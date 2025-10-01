@@ -6,7 +6,7 @@ package body EmergeOS is
 
    -- Basic types for OS development
    type Byte is mod 2**8;
-   -- type Word is mod 2**16; 
+  -- type Word is mod 2**16; 
    type DWord is mod 2**32;
 
    -- ================================
@@ -203,6 +203,28 @@ package body EmergeOS is
       return 0;
    end Create_Entity;
 
+   -- Display entity table to show we're using Entity_Table
+   procedure Display_Entity_Table is
+   begin
+      Console_Put_String ("Entity Table Contents:");
+      Console_New_Line;
+      for I in 1 .. Entity_Count loop
+         Console_Put_String ("  Entity ");
+         Put_Natural (I);
+         Console_Put_String (": ");
+         case Entity_Table(I).Kind is
+            when Entity_CPU => Console_Put_String ("CPU");
+            when Entity_Memory => Console_Put_String ("Memory");
+            when Entity_Device => Console_Put_String ("Device");
+            when Entity_Filesystem => Console_Put_String ("Filesystem");
+         end case;
+         Console_Put_String (" [ID: ");
+         Put_Natural (Entity_Table(I).ID);
+         Console_Put_String ("]");
+         Console_New_Line;
+      end loop;
+   end Display_Entity_Table;
+
    -- Simple number output without runtime dependencies
    procedure Put_Natural (N : Natural) is
    begin
@@ -263,6 +285,9 @@ package body EmergeOS is
          Console_Put_String (" [ACTIVE]");
          Console_New_Line;
       end;
+      
+      Console_New_Line;
+      Display_Entity_Table;  -- This uses Entity_Table and eliminates the warning
       Console_New_Line;
       Console_Put_String ("Entity Framework: OPERATIONAL");
       Console_New_Line;
