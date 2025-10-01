@@ -268,8 +268,8 @@ begin
       Console_New_Line;
       Console_New_Line;
       
-      -- Simple delay simulation
-      for Delay in 1 .. 10000000 loop
+      -- Simple delay simulation (fixed variable name - "delay" is reserved)
+      for Wait_Loop in 1 .. 10000000 loop
          null;
       end loop;
    end loop;
