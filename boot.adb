@@ -1,16 +1,13 @@
 -- boot.adb - Pure Ada Bootloader (No Inline Assembly Version)
-with Interfaces;
-with System.Storage_Elements;
-with EmergeOS;  -- ADDED: Import the Ada kernel package
+with System.Storage_Elements;  -- REMOVED: Interfaces
+with EmergeOS;
 
 procedure Boot is
-   use Interfaces;
    use System.Storage_Elements;
 
-   -- Basic types for OS development
+   -- Basic types for OS development - ONLY what we use
    type Byte is mod 2**8;
-   type Word is mod 2**16;
-   type DWord is mod 2**32;
+   type DWord is mod 2**32;  -- KEEP: Used in memory addressing
 
    -- VGA CONSOLE SUBSYSTEM (Pure Ada)
    type VGA_Color is
@@ -92,9 +89,6 @@ procedure Boot is
       Console_Put_Char (ASCII.LF);
    end Console_New_Line;
 
-   -- REMOVED: procedure EmergeOS_Main;
-   -- REMOVED: pragma Import (C, EmergeOS_Main, "emergeos_main");
-
 begin
    -- Initialize console
    Console_Clear;
@@ -106,7 +100,7 @@ begin
    Console_New_Line;
 
    -- Call the main kernel procedure
-   EmergeOS.EmergeOS;  -- CHANGED: Call the Ada procedure directly
+   EmergeOS.EmergeOS;
 
    -- If kernel returns, halt
    Console_Put_String ("System: Kernel returned - halting");
