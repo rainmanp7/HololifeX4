@@ -6,7 +6,7 @@ package body EmergeOS is
 
    -- Basic types for OS development
    type Byte is mod 2**8;
-   type Word is mod 2**16; 
+   -- type Word is mod 2**16; 
    type DWord is mod 2**32;
 
    -- ================================
