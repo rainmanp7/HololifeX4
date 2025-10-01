@@ -187,6 +187,9 @@ package body EmergeOS is
    begin
       Entity_Count := 0;
    end Initialize_Entities;
+
+   -- Forward declaration for recursive procedure
+   procedure Put_Natural (N : Natural);
    
    function Create_Entity (E_Type : Entity_Type) return Natural is
    begin
@@ -202,6 +205,15 @@ package body EmergeOS is
       end if;
       return 0;
    end Create_Entity;
+
+   -- Implementation of Put_Natural
+   procedure Put_Natural (N : Natural) is
+   begin
+      if N > 9 then
+         Put_Natural (N / 10);
+      end if;
+      Console_Put_Char (Character'Val(Character'Pos('0') + (N mod 10)));
+   end Put_Natural;
 
    -- Display entity table to show we're using Entity_Table
    procedure Display_Entity_Table is
@@ -224,15 +236,6 @@ package body EmergeOS is
          Console_New_Line;
       end loop;
    end Display_Entity_Table;
-
-   -- Simple number output without runtime dependencies
-   procedure Put_Natural (N : Natural) is
-   begin
-      if N > 9 then
-         Put_Natural (N / 10);
-      end if;
-      Console_Put_Char (Character'Val(Character'Pos('0') + (N mod 10)));
-   end Put_Natural;
 
    procedure EmergeOS is
    begin
