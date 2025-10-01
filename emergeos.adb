@@ -1,14 +1,14 @@
 -- emergeos.adb - Pure Ada HoloXlife Operating System with Holographic Entities
+with System;
+with System.Storage_Elements;
+with Types;
+with Holographic_Vectors;
+with Holographic_Memory;
+with Entities;
+
 package body EmergeOS is
    pragma Suppress(All_Checks);
    
-   with System;
-   with System.Storage_Elements;
-   with Types;
-   with Holographic_Vectors;
-   with Holographic_Memory;
-   with Entities;
-
    -- Use the holographic system packages
    use Types;
    use Holographic_Vectors;
@@ -22,11 +22,6 @@ package body EmergeOS is
      (Black, Blue, Green, Cyan, Red, Magenta, Brown, Light_Gray,
       Dark_Gray, Light_Blue, Light_Green, Light_Cyan, Light_Red,
       Light_Magenta, Yellow, White);
-   for VGA_Color use 
-     (Black => 0, Blue => 1, Green => 2, Cyan => 3, Red => 4, 
-      Magenta => 5, Brown => 6, Light_Gray => 7, Dark_Gray => 8,
-      Light_Blue => 9, Light_Green => 10, Light_Cyan => 11, 
-      Light_Red => 12, Light_Magenta => 13, Yellow => 14, White => 15);
    
    type VGA_Entry is record
       Char : Character;
@@ -269,7 +264,7 @@ package body EmergeOS is
          Console_New_Line;
          Console_New_Line;
          
-         -- Simple delay simulation (fixed variable name - "delay" is reserved)
+         -- Simple delay simulation
          for Wait_Loop in 1 .. 10000000 loop
             null;
          end loop;
