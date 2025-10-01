@@ -1,14 +1,14 @@
 -- emergeos.adb - Pure Ada HoloXlife Operating System with Holographic Entities
-with System;
-with System.Storage_Elements;
-with Types;
-with Holographic_Vectors;
-with Holographic_Memory;
-with Entities;
-
-procedure EmergeOS is
+package body EmergeOS is
    pragma Suppress(All_Checks);
    
+   with System;
+   with System.Storage_Elements;
+   with Types;
+   with Holographic_Vectors;
+   with Holographic_Memory;
+   with Entities;
+
    -- Use the holographic system packages
    use Types;
    use Holographic_Vectors;
@@ -215,79 +215,81 @@ procedure EmergeOS is
       end if;
    end Run_Consensus_Cycle;
 
-begin
-   -- Initialize all subsystems
-   Initialize_Console;
-   Console_Clear;
-   
-   Console_Put_String ("HoloXlife OS v2.0 - Emergent Consensus Protocol");
-   Console_New_Line;
-   Console_Put_String ("===============================================");
-   Console_New_Line;
-   Console_New_Line;
-
-   Console_Put_String ("Initializing Holographic Memory System...");
-   Console_New_Line;
-   Holographic_Memory.Initialize;
-   Holographic_Memory.Load_Initial_Genome_Vocabulary;
-   Console_Put_String ("- Holographic Memory: INITIALIZED");
-   Console_New_Line;
-   Console_Put_String ("- Genome Vocabulary: LOADED");
-   Console_New_Line;
-   Console_New_Line;
-
-   Console_Put_String ("Initializing Emergent Entity System...");
-   Console_New_Line;
-   Entities.Initialize_Entities;
-   Console_Put_String ("- Entity Pool: ");
-   Put_Natural (Active_Entity_Count);
-   Console_Put_String (" entities spawned");
-   Console_New_Line;
-   Console_Put_String ("- Cellular Automata: ACTIVE");
-   Console_New_Line;
-   Console_New_Line;
-
-   Console_Put_String ("Starting Emergent Consensus Protocol...");
-   Console_New_Line;
-   Console_Put_String ("Protocol: Harmonic Validation & Parallel Resolution");
-   Console_New_Line;
-   Console_New_Line;
-
-   -- Main emergent consensus loop
-   for Cycle in 1 .. 50 loop
-      Console_Put_String ("Cycle ");
-      Put_Natural (Cycle);
-      Console_Put_String (": ");
-      Console_New_Line;
+   procedure EmergeOS is
+   begin
+      -- Initialize all subsystems
+      Initialize_Console;
+      Console_Clear;
       
-      Run_Consensus_Cycle;
-      Display_Entity_State;
-      
+      Console_Put_String ("HoloXlife OS v2.0 - Emergent Consensus Protocol");
       Console_New_Line;
-      Console_Put_String ("---");
+      Console_Put_String ("===============================================");
       Console_New_Line;
       Console_New_Line;
-      
-      -- Simple delay simulation (fixed variable name - "delay" is reserved)
-      for Wait_Loop in 1 .. 10000000 loop
+
+      Console_Put_String ("Initializing Holographic Memory System...");
+      Console_New_Line;
+      Holographic_Memory.Initialize;
+      Holographic_Memory.Load_Initial_Genome_Vocabulary;
+      Console_Put_String ("- Holographic Memory: INITIALIZED");
+      Console_New_Line;
+      Console_Put_String ("- Genome Vocabulary: LOADED");
+      Console_New_Line;
+      Console_New_Line;
+
+      Console_Put_String ("Initializing Emergent Entity System...");
+      Console_New_Line;
+      Entities.Initialize_Entities;
+      Console_Put_String ("- Entity Pool: ");
+      Put_Natural (Active_Entity_Count);
+      Console_Put_String (" entities spawned");
+      Console_New_Line;
+      Console_Put_String ("- Cellular Automata: ACTIVE");
+      Console_New_Line;
+      Console_New_Line;
+
+      Console_Put_String ("Starting Emergent Consensus Protocol...");
+      Console_New_Line;
+      Console_Put_String ("Protocol: Harmonic Validation & Parallel Resolution");
+      Console_New_Line;
+      Console_New_Line;
+
+      -- Main emergent consensus loop
+      for Cycle in 1 .. 50 loop
+         Console_Put_String ("Cycle ");
+         Put_Natural (Cycle);
+         Console_Put_String (": ");
+         Console_New_Line;
+         
+         Run_Consensus_Cycle;
+         Display_Entity_State;
+         
+         Console_New_Line;
+         Console_Put_String ("---");
+         Console_New_Line;
+         Console_New_Line;
+         
+         -- Simple delay simulation (fixed variable name - "delay" is reserved)
+         for Wait_Loop in 1 .. 10000000 loop
+            null;
+         end loop;
+      end loop;
+
+      Console_Put_String ("===============================================");
+      Console_New_Line;
+      Console_Put_String ("EMERGENT CONSENSUS PROTOCOL COMPLETE");
+      Console_New_Line;
+      Console_Put_String ("Harmonic Intelligence: OPERATIONAL");
+      Console_New_Line;
+      Console_Put_String ("Collective Resolution: ACHIEVED");
+      Console_New_Line;
+      Console_Put_String ("===============================================");
+      Console_New_Line;
+
+      -- Halt system
+      loop
          null;
       end loop;
-   end loop;
+   end EmergeOS;
 
-   Console_Put_String ("===============================================");
-   Console_New_Line;
-   Console_Put_String ("EMERGENT CONSENSUS PROTOCOL COMPLETE");
-   Console_New_Line;
-   Console_Put_String ("Harmonic Intelligence: OPERATIONAL");
-   Console_New_Line;
-   Console_Put_String ("Collective Resolution: ACHIEVED");
-   Console_New_Line;
-   Console_Put_String ("===============================================");
-   Console_New_Line;
-
-   -- Halt system
-   loop
-      null;
-   end loop;
-   
 end EmergeOS;
