@@ -30,9 +30,22 @@ boot.o: boot.adb gnat.adc
 emergeos.o: emergeos.adb emergeos.ads gnat.adc
 	$(GCC) $(ADAFLAGS) emergeos.adb -o emergeos.o
 
-# Link Pure Ada OS kernel 
-kernel.bin: boot.o emergeos.o linker.ld
-	ld $(LDFLAGS) -o kernel.elf boot.o emergeos.o
+# Compile holographic system components
+types.o: types.ads gnat.adc
+	$(GCC) $(ADAFLAGS) types.ads -o types.o
+
+holographic_vectors.o: holographic_vectors.ads holographic_vectors.adb types.ads gnat.adc
+	$(GCC) $(ADAFLAGS) holographic_vectors.adb -o holographic_vectors.o
+
+holographic_memory.o: holographic_memory.ads holographic_memory.adb types.ads holographic_vectors.ads gnat.adc
+	$(GCC) $(ADAFLAGS) holographic_memory.adb -o holographic_memory.o
+
+entities.o: entities.ads entities.adb types.ads holographic_vectors.ads holographic_memory.ads gnat.adc
+	$(GCC) $(ADAFLAGS) entities.adb -o entities.o
+
+# Link Pure Ada OS kernel with holographic system
+kernel.bin: boot.o emergeos.o types.o holographic_vectors.o holographic_memory.o entities.o linker.ld
+	ld $(LDFLAGS) -o kernel.elf boot.o emergeos.o types.o holographic_vectors.o holographic_memory.o entities.o
 	objcopy -O binary kernel.elf kernel.bin
 
 # Build bootloader from assembly
