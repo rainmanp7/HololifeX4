@@ -460,6 +460,10 @@ jobs:
             *.o
             *.log
             *.adc
+            *.adb
+            *.ads
+            *.txt
+            *.asm
             bochsrc.txt
             Makefile
             emergeos.ads
