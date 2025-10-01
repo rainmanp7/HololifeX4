@@ -26,8 +26,8 @@ gnat.adc:
 boot.o: boot.adb gnat.adc
 	$(GCC) $(ADAFLAGS) boot.adb -o boot.o
 
-# Compile Pure Ada kernel using GCC directly (no gnatmake) - NO emergeos.ads dependency
-emergeos.o: emergeos.adb gnat.adc
+# Compile Pure Ada kernel using GCC directly (no gnatmake) - WITH emergeos.ads dependency
+emergeos.o: emergeos.adb emergeos.ads gnat.adc
 	$(GCC) $(ADAFLAGS) emergeos.adb -o emergeos.o
 
 # Compile holographic system components
@@ -67,9 +67,9 @@ run: emergeos.img
 	@echo "Booting HoloXlife Pure Ada Operating System..."
 	$(BOCHS) -f $(BOCHS_CONFIG)
 
-# Clean build artifacts
+# Clean build artifacts (preserve emergeos.ads)
 clean:
-	rm -f *.bin *.o *.img *.elf *.ali gnat.adc emergeos.ads
+	rm -f *.bin *.o *.img *.elf *.ali gnat.adc
 	@echo "Pure Ada OS build cleaned"
 
 .PHONY: all clean run
