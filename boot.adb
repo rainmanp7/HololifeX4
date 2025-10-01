@@ -7,7 +7,7 @@ procedure Boot is
 
    -- Basic types for OS development - ONLY what we use
    type Byte is mod 2**8;
-   type DWord is mod 2**32;  -- KEEP: Used in memory addressing
+  -- type DWord is mod 2**32;  -- KEEP: Used in memory addressing
 
    -- VGA CONSOLE SUBSYSTEM (Pure Ada)
    type VGA_Color is
