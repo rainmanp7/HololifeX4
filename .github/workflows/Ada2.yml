@@ -22,6 +22,29 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Clean Up Old Files
+        run: |
+          echo "🧹 Removing old files that cause conflicts..."
+          OLD_FILES=(
+            "kernel_entry.adb"
+            "kernel_entry.asm"
+            "s-lastch.ads"
+            "s-lastch.adb"
+            "s-memory.ads"
+            "s-memory.adb"
+            "holographic_kernel.c"
+            "*.adb"
+            "*.ads"
+            "*.txt"
+          )
+          for file in "${OLD_FILES[@]}"; do
+            if [ -f "$file" ]; then
+              echo "🗑️  Deleting: $file"
+              rm -f "$file"
+            fi
+          done
+          echo "✅ Cleanup complete"
+
       - name: Cache APT Dependencies
         id: apt-cache
         uses: actions/cache@v4
@@ -93,13 +116,60 @@ jobs:
             fi
           done
           echo ""
-          echo "OLD FILES THAT SHOULD BE DELETED:"
-          for file in \
-            kernel_entry.adb \
-            kernel_entry.asm \
-            s-lastch.ads \
-            s-lastch.adb \
-            s-memory.ads \
-            s-memory.adb \
-            holographic_kernel.c; do
-            if [ -f "$file" ]; then
+          echo "✅ Pure Ada OS file check complete"
+
+      - name: Build Pure Ada OS
+        run: |
+          echo "🔨 Building HoloXlife Pure Ada OS..."
+          make clean || true
+          make all
+          echo "✅ Build complete"
+
+      - name: Verify Build Artifacts
+        run: |
+          echo "🔍 Verifying build artifacts..."
+          if [ -f "$IMAGE_NAME" ]; then
+            echo "✅ $IMAGE_NAME created ($(stat -c%s "$IMAGE_NAME") bytes)"
+            file "$IMAGE_NAME"
+          else
+            echo "❌ $IMAGE_NAME not found!"
+            exit 1
+          fi
+
+      - name: Test Boot with QEMU
+        run: |
+          echo "🚀 Testing Pure Ada OS boot with QEMU..."
+          timeout 30 qemu-system-i386 \
+            -drive format=raw,file="$IMAGE_NAME" \
+            -serial file:"$SERIAL_LOG" \
+            -display none \
+            -no-reboot \
+            -no-shutdown || true
+          
+          echo ""
+          echo "📋 Serial output:"
+          if [ -f "$SERIAL_LOG" ]; then
+            cat "$SERIAL_LOG"
+            echo ""
+            echo "✅ QEMU test complete"
+          else
+            echo "⚠️  No serial output captured"
+          fi
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pure-ada-os-build
+          path: |
+            ${{ env.IMAGE_NAME }}
+            ${{ env.SERIAL_LOG }}
+            *.o
+            *.ali
+            *.adb
+            *.ads
+            *.img
+            *.txt
+            *.grp
+            *.grs
+          retention-days: 7
