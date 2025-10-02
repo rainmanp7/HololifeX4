@@ -1,0 +1,17 @@
+# Bochs configuration for HoloXlife Pure Ada Operating System
+floppya: 1_44=emergeos.img, status=inserted
+boot: floppy
+log: bochs.log
+logprefix: %t%e%d
+panic: action=report
+error: action=report
+info: action=report
+debug: action=ignore
+debugger_log: -
+cpu: model=pentium_mmx, ips=4000000, reset_on_triple_fault=1
+megs: 256
+vga: extension=none, update_interval=50000
+com1: enabled=1, mode=file, dev=serial.log
+magic_break: enabled=1
+display_library: x, options="gui_debug"
+clock: sync=realtime, time0=local
