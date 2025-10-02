@@ -1,6 +1,10 @@
 -- emergeos.adb: HoloXlife OS Kernel - Entity Management & Holographic Memory
 with System;
 with System.Storage_Elements;
+with Manifolds;      -- ← ADD THIS LINE
+with Operations;     -- ← ADD THIS LINE  
+with Holography;     -- ← ADD THIS LINE
+with Patterns;       -- ← ADD THIS LINE
 
 package body EmergeOS is
 
