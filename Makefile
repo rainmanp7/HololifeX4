@@ -30,9 +30,22 @@ boot.o: boot.adb gnat.adc
 emergeos.o: emergeos.adb emergeos.ads gnat.adc
 	$(GCC) $(ADAFLAGS) emergeos.adb -o emergeos.o
 
-# Link Pure Ada OS kernel 
-kernel.bin: boot.o emergeos.o linker.ld
-	ld $(LDFLAGS) -o kernel.elf boot.o emergeos.o
+# Compile new HoloXlife packages
+manifolds.o: manifolds.adb manifolds.ads gnat.adc
+	$(GCC) $(ADAFLAGS) manifolds.adb -o manifolds.o
+
+operations.o: operations.ads gnat.adc
+	$(GCC) $(ADAFLAGS) operations.ads -o operations.o
+
+holography.o: holography.ads gnat.adc
+	$(GCC) $(ADAFLAGS) holography.ads -o holography.o
+
+patterns.o: patterns.ads gnat.adc
+	$(GCC) $(ADAFLAGS) patterns.ads -o patterns.o
+
+# Link Pure Ada OS kernel with all packages
+kernel.bin: boot.o emergeos.o manifolds.o operations.o holography.o patterns.o linker.ld
+	ld $(LDFLAGS) -o kernel.elf boot.o emergeos.o manifolds.o operations.o holography.o patterns.o
 	objcopy -O binary kernel.elf kernel.bin
 
 # Build bootloader from assembly
