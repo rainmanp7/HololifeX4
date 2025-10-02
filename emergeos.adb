@@ -1,4 +1,4 @@
--- emergeos.adb - Pure Ada HoloXlife Operating System
+-- emergeos.adb: HoloXlife OS Kernel - Entity Management & Holographic Memory
 with System;
 with System.Storage_Elements;
 
@@ -7,10 +7,10 @@ package body EmergeOS is
    -- Basic types for OS development
    type Byte is mod 2**8;
    type Word is mod 2**16; 
-   type DWord is mod 2**32;
+   -- REMOVED: type DWord is mod 2**32; (unused)
    
    pragma Unreferenced (Word);
-   pragma Unreferenced (DWord);
+   -- REMOVED: pragma Unreferenced (DWord); (no longer needed)
 
    -- ================================
    -- VGA CONSOLE SUBSYSTEM (Pure Ada)
@@ -132,7 +132,7 @@ package body EmergeOS is
       Initialize_Holo_Memory;
    end Holo_Memory_Init;
    
-   function Holo_Allocate (Blocks_Needed : Natural) return DWord is
+   function Holo_Allocate (Blocks_Needed : Natural) return Natural is
       Found_Blocks : Natural := 0;
       Start_I, Start_J : Natural := 0;
    begin
@@ -157,7 +157,7 @@ package body EmergeOS is
                   end loop;
                   Holo_Allocated_Blocks := Holo_Allocated_Blocks + Blocks_Needed;
                   Holo_Free_Blocks := Holo_Free_Blocks - Blocks_Needed;
-                  return DWord(HOLO_BASE + (Start_I * HOLO_MATRIX_SIZE + Start_J) * 16);
+                  return HOLO_BASE + (Start_I * HOLO_MATRIX_SIZE + Start_J) * 16;
                end if;
             else
                Found_Blocks := 0;
@@ -178,7 +178,7 @@ package body EmergeOS is
       ID : Natural;
       Status : Entity_Status;
       Priority : Natural;
-      Memory_Base : DWord;
+      Memory_Base : Natural;
    end record;
    
    Max_Entities : constant := 256;
@@ -276,7 +276,7 @@ package body EmergeOS is
       Console_Put_String ("Testing Holographic Allocator...");
       Console_New_Line;
       declare
-         Test_Block : constant DWord := Holo_Allocate (128);
+         Test_Block : constant Natural := Holo_Allocate (128);
       begin
          if Test_Block /= 0 then
             Console_Put_String ("- Holographic Allocation: SUCCESS");
