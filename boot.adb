@@ -1,6 +1,6 @@
 -- boot.adb: Pure Ada Bootloader (No Assembly) - BIOS to Protected Mode Bridge
-with System.Storage_Elements;  -- RESTORED: Required for To_Address()
-with EmergeOS;                 -- RESTORED: Required for kernel call
+with System.Storage_Elements;  -- Required for To_Address()
+with EmergeOS;                 -- Required for kernel call
 
 procedure Boot is
    -- Basic types for OS development - ONLY what's actually used
@@ -38,4 +38,73 @@ procedure Boot is
       return Byte(VGA_Color'Pos(FG)) or (Byte(VGA_Color'Pos(BG)) * 16);
    end Make_Color;
 
-   -- ... rest unchanged ...
+   procedure Console_Clear is
+      Color : constant Byte := Make_Color (White, Black);
+   begin
+      for Row in VGA_Buffer'Range(1) loop
+         for Col in VGA_Buffer'Range(2) loop
+            VGA_Buffer(Row, Col) := (' ', Color);
+         end loop;
+      end loop;
+      Console_Row := 0;
+      Console_Col := 0;
+   end Console_Clear;
+
+   procedure Console_Put_Char (C : Character) is
+      Color : constant Byte := Make_Color (Light_Green, Black);
+   begin
+      if C = ASCII.LF then
+         Console_Col := 0;
+         if Console_Row < 24 then
+            Console_Row := Console_Row + 1;
+         end if;
+      elsif C = ASCII.CR then
+         Console_Col := 0;
+      else
+         if Console_Row < 25 and Console_Col < 80 then
+            VGA_Buffer(Console_Row, Console_Col) := (C, Color);
+            Console_Col := Console_Col + 1;
+            if Console_Col >= 80 then
+               Console_Col := 0;
+               if Console_Row < 24 then
+                  Console_Row := Console_Row + 1;
+               end if;
+            end if;
+         end if;
+      end if;
+   end Console_Put_Char;
+
+   procedure Console_Put_String (S : String) is
+   begin
+      for I in S'Range loop
+         Console_Put_Char (S(I));
+      end loop;
+   end Console_Put_String;
+
+   procedure Console_New_Line is
+   begin
+      Console_Put_Char (ASCII.LF);
+   end Console_New_Line;
+
+begin
+   -- Initialize console
+   Console_Clear;
+   Console_Put_String ("HoloXlife OS v1.0 - Pure Ada Implementation");
+   Console_New_Line;
+   Console_Put_String ("Bootloader: Ada Runtime Initialized");
+   Console_New_Line;
+   Console_Put_String ("System: Starting kernel...");
+   Console_New_Line;
+
+   -- Call the main kernel procedure
+   EmergeOS.EmergeOS;
+
+   -- If kernel returns, halt
+   Console_Put_String ("System: Kernel returned - halting");
+   Console_New_Line;
+   
+   -- Infinite loop
+   loop
+      null;
+   end loop;
+end Boot;
