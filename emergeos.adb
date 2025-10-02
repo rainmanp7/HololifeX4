@@ -1,20 +1,14 @@
 -- emergeos.adb: HoloXlife OS Kernel - Entity Management & Holographic Memory
 with System;
 with System.Storage_Elements;
-with Manifolds;      -- ← ADD THIS LINE
-with Operations;     -- ← ADD THIS LINE  
-with Holography;     -- ← ADD THIS LINE
-with Patterns;       -- ← ADD THIS LINE
 
 package body EmergeOS is
 
    -- Basic types for OS development
    type Byte is mod 2**8;
    type Word is mod 2**16; 
-   -- REMOVED: type DWord is mod 2**32; (unused)
    
    pragma Unreferenced (Word);
-   -- REMOVED: pragma Unreferenced (DWord); (no longer needed)
 
    -- ================================
    -- VGA CONSOLE SUBSYSTEM (Pure Ada)
