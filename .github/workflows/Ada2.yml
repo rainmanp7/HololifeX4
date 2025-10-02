@@ -22,16 +22,27 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Cache APT Dependencies
+      - name: 🧹 NUCLEAR CLEAN - Remove ALL Build Artifacts
+        run: |
+          echo "💥 NUCLEAR CLEAN - Ensuring pristine source state..."
+          # Remove ALL possible build artifacts
+          rm -rf *.o *.ali *.elf *.bin *.img *.adc *.log
+          rm -rf .obj .libs build dist out target
+          # Force absolute clean state
+          git clean -fdx -e '*.adb' -e '*.ads' -e '*.asm' -e '*.ld' -e 'Makefile' -e '*.txt' || echo "Git clean completed"
+          git reset --hard HEAD || echo "Git reset completed"
+          echo "✅ Nuclear clean complete - pristine source state guaranteed"
+
+      - name: Cache ONLY APT Packages (NO BUILD ARTIFACTS)
         id: apt-cache
         uses: actions/cache@v4
         with:
           path: |
             /var/cache/apt/archives
             /var/lib/apt/lists
-          key: ${{ runner.os }}-pure-ada-${{ hashFiles('**/Makefile') }}-v4
+          key: ${{ runner.os }}-apt-packages-${{ hashFiles('**/Makefile') }}-v5
           restore-keys: |
-            ${{ runner.os }}-pure-ada-
+            ${{ runner.os }}-apt-packages-
 
       - name: Install Pure Ada Compiler and Dependencies
         run: |
@@ -52,113 +63,80 @@ jobs:
             qemu-system-i386
           echo "✅ Pure Ada toolchain installation complete"
 
-      - name: Verify Pure Ada Installation
+      - name: Verify Source Integrity
         run: |
-          echo "🔍 Verifying Pure Ada toolchain..."
-          echo "GNAT version:"
-          gnat --version 2>/dev/null || echo "GNAT check failed"
-          echo ""
-          echo "GCC version (for Ada):"
-          gcc-10 --version | head -1 || echo "GCC-10 not available"
-          echo ""
-          echo "NASM version:"
-          nasm --version || echo "NASM not available"
-          echo ""
-          echo "QEMU version:"
-          qemu-system-i386 --version | head -1 || echo "QEMU check failed"
-          echo ""
-          echo "Bochs version:"
-          bochs --version 2>&1 | head -3 || echo "Bochs version check failed"
-          echo "✅ Pure Ada toolchain verification complete"
-
-      - name: Show Pure Ada Project Files
-        run: |
-          echo "📁 HoloXlife Pure Ada OS structure:"
-          ls -la
-          echo ""
-          echo "🔍 Checking Pure Ada OS files (NO C FILES EXPECTED):"
-          echo "REQUIRED FILES:"
-          for file in \
-            boot.asm \
-            linker.ld \
-            emergeos.ads \
-            emergeos.adb \
-            system.ads \
-            boot.adb \
-            Makefile; do
+          echo "🔍 Verifying source file integrity..."
+          echo "Required Pure Ada files:"
+          REQUIRED_FILES=(
+            "boot.asm"
+            "linker.ld" 
+            "emergeos.ads"
+            "emergeos.adb"
+            "system.ads"
+            "boot.adb"
+            "Makefile"
+          )
+          for file in "${REQUIRED_FILES[@]}"; do
             if [ -f "$file" ]; then
               echo "✅ $file ($(stat -c%s "$file") bytes)"
             else
-              echo "❌ $file - MISSING (REQUIRED)"
+              echo "❌ $file - MISSING - BUILD WILL FAIL"
+              exit 1
             fi
           done
-          echo ""
-          echo "OLD FILES THAT SHOULD BE DELETED:"
-          for file in \
-            kernel_entry.adb \
-            kernel_entry.asm \
-            s-lastch.ads \
-            s-lastch.adb \
-            s-memory.ads \
-            s-memory.adb \
-            holographic_kernel.c; do
-            if [ -f "$file" ]; then
-              echo "⚠️  $file - SHOULD BE DELETED (Old C/runtime files)"
-            else
-              echo "✅ $file - Correctly deleted"
-            fi
-          done
-          echo ""
-          echo "📊 File size analysis:"
-          du -h * 2>/dev/null | sort -hr || echo "No files to analyze"
+          echo "✅ All required source files present and correct"
 
-      - name: Clean Old Build Artifacts
+      - name: Force Fresh Build
         run: |
-          echo "🧹 Cleaning previous build artifacts..."
-          make clean 2>/dev/null || true
-          rm -f *.bin *.img *.elf *.ali *.o gnat.adc 2>/dev/null || true
-          echo "✅ Clean complete"
+          echo "🔨 FORCE FRESH BUILD - Clean slate approach..."
+          # Manual clean to ensure no stale artifacts
+          rm -f *.o *.ali *.elf *.bin *.img gnat.adc 2>/dev/null || true
+          
+          echo "Step 1: Create fresh gnat.adc"
+          cat > gnat.adc << 'EOF'
+          pragma Restrictions (No_Exceptions);
+          pragma Restrictions (No_Implicit_Heap_Allocations);
+          pragma Restrictions (No_Tasking);
+          pragma Restrictions (No_Protected_Types);
+          pragma Restrictions (No_Finalization);
+          pragma Restrictions (No_Secondary_Stack);
+          EOF
+          echo "✅ gnat.adc created"
 
       - name: Build HoloXlife Pure Ada OS
         run: |
           echo "🔨 Building HoloXlife Pure Ada Operating System..."
           echo "=========================================="
-          # Show available targets
-          echo "Available Makefile targets:"
-          make info 2>/dev/null || echo "No info target available"
-          # Build step by step with detailed logging
-          echo ""
-          echo "Step 1: Creating Ada configuration..."
-          make gnat.adc || { echo "❌ Failed to create gnat.adc"; exit 1; }
-          if [ -f gnat.adc ]; then
-            echo "✅ gnat.adc created:"
-            cat gnat.adc
-          fi
-          echo ""
-          echo "Step 2: Compiling Pure Ada kernel..."
-          make emergeos.o || { echo "❌ Failed to compile Ada kernel"; exit 1; }
-          echo ""
-          echo "Step 3: Compiling bootloader..."
+          
+          # Use Makefile but with enhanced logging
+          echo "Step 1: Compiling boot.adb..."
           make boot.o || { echo "❌ Failed to compile bootloader"; exit 1; }
+          [ -f boot.o ] && echo "✅ boot.o created ($(stat -c%s boot.o) bytes)" || exit 1
+          
           echo ""
-          echo "Step 4: Linking Pure Ada OS kernel..."
+          echo "Step 2: Compiling emergeos.adb..."
+          make emergeos.o || { echo "❌ Failed to compile Ada kernel"; exit 1; }
+          [ -f emergeos.o ] && echo "✅ emergeos.o created ($(stat -c%s emergeos.o) bytes)" || exit 1
+          
+          echo ""
+          echo "Step 3: Linking kernel..."
           make kernel.bin || { echo "❌ Failed to link Ada OS kernel"; exit 1; }
+          [ -f kernel.bin ] && echo "✅ kernel.bin created ($(stat -c%s kernel.bin) bytes)" || exit 1
+          
           echo ""
-          echo "Step 5: Building bootloader..."
+          echo "Step 4: Building bootloader..."
           make boot.bin || { echo "❌ Failed to build bootloader"; exit 1; }
+          [ -f boot.bin ] && echo "✅ boot.bin created ($(stat -c%s boot.bin) bytes)" || exit 1
+          
           echo ""
-          echo "Step 6: Creating HoloXlife OS disk image..."
+          echo "Step 5: Creating OS image..."
           make $IMAGE_NAME || { echo "❌ Failed to create OS image"; exit 1; }
-          # Verify build results
-          if [ ! -f "$IMAGE_NAME" ]; then
-            echo "❌ $IMAGE_NAME not created"
-            echo "Directory contents:"
-            ls -la
-            exit 1
-          fi
+          [ -f $IMAGE_NAME ] && echo "✅ $IMAGE_NAME created ($(stat -c%s $IMAGE_NAME) bytes)" || exit 1
+          
           echo ""
-          echo "✅ HoloXlife Pure Ada OS Build SUCCESSFUL!"
+          echo "🎉 HOLOXLIFE PURE ADA OS BUILD SUCCESSFUL!"
           echo "=========================================="
+
           echo "📊 Pure Ada OS Build artifacts:"
           ls -la *.bin *.img *.elf *.o 2>/dev/null || echo "Some binary files missing"
           echo ""
@@ -423,6 +401,8 @@ jobs:
             *.o
             *.log
             *.adc
+            *.adb
+            *.ads
             bochsrc.txt
             Makefile
             emergeos.ads
