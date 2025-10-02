@@ -1,26 +1,21 @@
--- emergeos.ads: Enhanced with vector manifold entities
-with Manifolds;
-
+-- emergeos.ads: Pure Ada OS Kernel Specification
 package EmergeOS is
    pragma Elaborate_Body;
    
-   type Vector_512 is new Manifolds.Vector_512;
-   type Manifold_Point is new Manifolds.Manifold_Point;
+   -- Entity types for core OS management
+   type Entity_Type is (Entity_CPU, Entity_Memory, Entity_Device, Entity_Filesystem);
+   type Entity_Status is (Active);
    
-   type Holographic_Entity is record
-      Base_ID     : Natural;
-      Base_Active : Boolean;
-      Manifold_State : Manifold_Point;
-      Emergence_Level : Float;
-      Memory_Patterns : Vector_512;
+   type Entity_Record is record
+      Kind : Entity_Type;
+      ID : Natural;
+      Status : Entity_Status;
+      Priority : Natural;
+      Memory_Base : Natural;
    end record;
    
-   Max_Holographic_Entities : constant := 256;
-   type Holographic_Entity_Array is array (1..Max_Holographic_Entities) of Holographic_Entity;
-   
+   -- Core OS procedures
    procedure EmergeOS;
-   procedure Initialize_Manifold_Entities;
-   procedure Update_Entity_Manifolds;
-   procedure Display_Manifold_Status;
-   function Detect_Coordinated_Emergence return Boolean;
+   function Create_Entity (E_Type : Entity_Type) return Natural;
+   
 end EmergeOS;
