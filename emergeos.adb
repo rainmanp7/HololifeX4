@@ -10,9 +10,7 @@ package body EmergeOS is
    
    pragma Unreferenced (Word);
 
-   -- ================================
-   -- VGA CONSOLE SUBSYSTEM (Pure Ada)
-   -- ================================
+   -- VGA Console Subsystem (keep all VGA code as-is)
    type VGA_Color is 
      (Black, Blue, Green, Cyan, Red, Magenta, Brown, Light_Gray,
       Dark_Gray, Light_Blue, Light_Green, Light_Cyan, Light_Red,
@@ -38,7 +36,6 @@ package body EmergeOS is
    Console_Row : Natural := 0;
    Console_Col : Natural := 0;
    
-   -- State initialization procedure
    procedure Initialize_Console is
    begin
       Console_Row := 0;
@@ -98,9 +95,7 @@ package body EmergeOS is
       Console_Put_Char (ASCII.LF);
    end Console_New_Line;
 
-   -- =======================================
-   -- HOLOGRAPHIC MEMORY MANAGER (Pure Ada)
-   -- =======================================
+   -- Holographic Memory Manager (keep all holographic code as-is)
    HOLO_BASE : constant := 16#A0000#;
    HOLO_MATRIX_SIZE : constant := 512;
    
@@ -113,7 +108,6 @@ package body EmergeOS is
    Holo_Allocated_Blocks : Natural := 0;
    Holo_Free_Blocks : Natural := HOLO_MATRIX_SIZE * HOLO_MATRIX_SIZE;
    
-   -- State initialization procedure
    procedure Initialize_Holo_Memory is
    begin
       Holo_Allocated_Blocks := 0;
@@ -165,27 +159,13 @@ package body EmergeOS is
       return 0;
    end Holo_Allocate;
 
-   -- =============================
-   -- ENTITY MANAGEMENT (Pure Ada)
-   -- =============================
-   type Entity_Type is (Entity_CPU, Entity_Memory, Entity_Device, Entity_Filesystem);
-   type Entity_Status is (Active);
-   
-   type Entity_Record is record
-      Kind : Entity_Type;
-      ID : Natural;
-      Status : Entity_Status;
-      Priority : Natural;
-      Memory_Base : Natural;
-   end record;
-   
+   -- Entity Management Implementation (NO duplicate type declarations)
    Max_Entities : constant := 256;
    Entity_Table : array (1 .. Max_Entities) of Entity_Record;
    Entity_Count : Natural := 0;
    
    pragma Unreferenced (Entity_Table);
 
-   -- State initialization procedure
    procedure Initialize_Entities is
    begin
       Entity_Count := 0;
@@ -206,7 +186,6 @@ package body EmergeOS is
       return 0;
    end Create_Entity;
 
-   -- Simple number output without runtime dependencies
    procedure Put_Natural (N : Natural) is
    begin
       if N > 9 then
@@ -216,8 +195,11 @@ package body EmergeOS is
    end Put_Natural;
 
    procedure EmergeOS is
+      CPU_Entity : Natural;
+      Memory_Entity : Natural;  
+      Device_Entity : Natural;
+      FS_Entity : Natural;
    begin
-      -- Initialize all subsystems first
       Initialize_Console;
       Initialize_Holo_Memory;
       Initialize_Entities;
@@ -240,32 +222,32 @@ package body EmergeOS is
 
       Console_Put_String ("Creating Core Entities...");
       Console_New_Line;
-      declare
-         CPU_Entity : constant Natural := Create_Entity (Entity_CPU);
-         Memory_Entity : constant Natural := Create_Entity (Entity_Memory);  
-         Device_Entity : constant Natural := Create_Entity (Entity_Device);
-         FS_Entity : constant Natural := Create_Entity (Entity_Filesystem);
-      begin
-         Console_Put_String ("- CPU Entity ID: ");
-         Put_Natural (CPU_Entity);
-         Console_Put_String (" [ACTIVE]");
-         Console_New_Line;
-         
-         Console_Put_String ("- Memory Entity ID: ");
-         Put_Natural (Memory_Entity);
-         Console_Put_String (" [ACTIVE]");
-         Console_New_Line;
-         
-         Console_Put_String ("- Device Entity ID: ");
-         Put_Natural (Device_Entity);
-         Console_Put_String (" [ACTIVE]");
-         Console_New_Line;
-         
-         Console_Put_String ("- Filesystem Entity ID: ");
-         Put_Natural (FS_Entity);
-         Console_Put_String (" [ACTIVE]");
-         Console_New_Line;
-      end;
+      
+      CPU_Entity := Create_Entity (Entity_CPU);
+      Memory_Entity := Create_Entity (Entity_Memory);  
+      Device_Entity := Create_Entity (Entity_Device);
+      FS_Entity := Create_Entity (Entity_Filesystem);
+      
+      Console_Put_String ("- CPU Entity ID: ");
+      Put_Natural (CPU_Entity);
+      Console_Put_String (" [ACTIVE]");
+      Console_New_Line;
+      
+      Console_Put_String ("- Memory Entity ID: ");
+      Put_Natural (Memory_Entity);
+      Console_Put_String (" [ACTIVE]");
+      Console_New_Line;
+      
+      Console_Put_String ("- Device Entity ID: ");
+      Put_Natural (Device_Entity);
+      Console_Put_String (" [ACTIVE]");
+      Console_New_Line;
+      
+      Console_Put_String ("- Filesystem Entity ID: ");
+      Put_Natural (FS_Entity);
+      Console_Put_String (" [ACTIVE]");
+      Console_New_Line;
+      
       Console_New_Line;
       Console_Put_String ("Entity Framework: OPERATIONAL");
       Console_New_Line;
