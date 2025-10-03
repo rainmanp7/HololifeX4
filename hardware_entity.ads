@@ -1,11 +1,11 @@
 -- hardware_entity.ads: Hardware Reality Anchor
 -- First specialized pulse-coupled entity for HelloXLife OS
 with Pulse_Types; use Pulse_Types;
-with Pulse_Entities; use Pulse_Entities;
 
 package Hardware_Entity is
    
-   type Hardware_Anchor is new Base_Entity with record
+   type Hardware_Anchor is record  -- CHANGED: No inheritance, use composition
+      Base : Pulse_Types.Entity_Record;
       Memory_Validated : Boolean;
       Devices_Detected : Natural;
       Resource_Coherence : Natural;
@@ -22,7 +22,7 @@ package Hardware_Entity is
    function Validate_Memory_Layout return Boolean;
    function Detect_Hardware_Devices return Natural;
    function Calculate_Resource_Coherence return Natural;
-   function Check_Hardware_Consistency return Boolean;
+   function Check_Hardware_Consistency (Entity : Hardware_Anchor) return Boolean;
    
    -- Entity constants
    HARDWARE_FREQUENCY : constant Frequency_Type := 3;  -- Deliberate, careful
