@@ -17,6 +17,9 @@ package Pulse_Types is
       ENTITY_INTENTIONAL
    );
    
+   -- Insight types (DECLARE THIS FIRST)
+   type Insight_Type is (INSIGHT_NONE, INSIGHT_VALIDATION, INSIGHT_OPTIMIZATION, INSIGHT_PREDICTION);
+   
    -- Network constants
    MAX_ENTITIES : constant := 6;
    PHASE_THRESHOLD : constant Phase_Type := 1000;  -- 1.0 threshold
@@ -36,8 +39,7 @@ package Pulse_Types is
    -- Network array
    type Entity_Array is array (1 .. MAX_ENTITIES) of Entity_Record;
    
-   -- Insight types
-   type Insight_Type is (INSIGHT_NONE, INSIGHT_VALIDATION, INSIGHT_OPTIMIZATION, INSIGHT_PREDICTION);
+   -- Insight record (NOW Insight_Type IS FULLY DECLARED)
    type Insight_Record is record
       Insight_Type : Insight_Type;
       Source_Entity : Entity_ID;
