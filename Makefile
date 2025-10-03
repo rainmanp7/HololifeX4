@@ -47,23 +47,27 @@ pulse_sync.o: pulse_sync.ads pulse_sync.adb pulse_types.ads pulse_entities.ads g
 	$(GCC) $(ADAFLAGS) pulse_sync.adb -o pulse_sync.o
 
 # ===========================================
-# PHASE 3: HARDWARE ENTITY COMPILATION
+# PHASE 3: SPECIALIZED ENTITIES COMPILATION
 # ===========================================
 
 # Compile Hardware Entity
 hardware_entity.o: hardware_entity.ads hardware_entity.adb pulse_types.ads pulse_entities.ads gnat.adc
 	$(GCC) $(ADAFLAGS) hardware_entity.adb -o hardware_entity.o
 
+# Compile Temporal Entity (NEW - PHASE 3 WEEK 2)
+temporal_entity.o: temporal_entity.ads temporal_entity.adb pulse_types.ads pulse_entities.ads gnat.adc
+	$(GCC) $(ADAFLAGS) temporal_entity.adb -o temporal_entity.o
+
 # ===========================================
-# ENHANCED KERNEL LINKING WITH HARDWARE ENTITY
+# ENHANCED KERNEL LINKING WITH MULTI-ENTITY NETWORK
 # ===========================================
 
-# Link Pure Ada OS kernel with Hardware Entity
-kernel.bin: boot.o emergeos.o pulse_types.o pulse_entities.o pulse_sync.o hardware_entity.o linker.ld
-	@echo "Linking HoloXlife OS with Hardware Entity..."
-	ld $(LDFLAGS) -o kernel.elf boot.o emergeos.o pulse_types.o pulse_entities.o pulse_sync.o hardware_entity.o
+# Link Pure Ada OS kernel with Hardware + Temporal Entities
+kernel.bin: boot.o emergeos.o pulse_types.o pulse_entities.o pulse_sync.o hardware_entity.o temporal_entity.o linker.ld
+	@echo "Linking HoloXlife OS with Hardware + Temporal Entities..."
+	ld $(LDFLAGS) -o kernel.elf boot.o emergeos.o pulse_types.o pulse_entities.o pulse_sync.o hardware_entity.o temporal_entity.o
 	objcopy -O binary kernel.elf kernel.bin
-	@echo "✅ Kernel linked with Hardware Entity"
+	@echo "✅ Kernel linked with Hardware + Temporal Entities"
 
 # Build bootloader from assembly
 boot.bin: boot.asm kernel.bin
@@ -77,16 +81,16 @@ emergeos.img: boot.bin kernel.bin
 	dd if=/dev/zero of=$@ bs=512 count=2880 2>/dev/null
 	dd if=boot.bin of=$@ conv=notrunc 2>/dev/null
 	dd if=kernel.bin of=$@ bs=512 seek=1 conv=notrunc 2>/dev/null
-	@echo "HoloXlife OS (Phase 3: Hardware Entity) image created: emergeos.img"
+	@echo "HoloXlife OS (Phase 3: Hardware+Temporal Entities) image created: emergeos.img"
 
 # Run Pure Ada OS in Bochs
 run: emergeos.img
-	@echo "Booting HoloXlife Pure Ada Operating System with Hardware Entity..."
+	@echo "Booting HoloXlife Pure Ada Operating System with Hardware+Temporal Entities..."
 	$(BOCHS) -f $(BOCHS_CONFIG)
 
-# Clean build artifacts (including hardware entity)
+# Clean build artifacts (including all entities)
 clean:
 	rm -f *.bin *.o *.img *.elf *.ali gnat.adc
-	@echo "Pure Ada OS + Hardware Entity build cleaned"
+	@echo "Pure Ada OS + Multi-Entity build cleaned"
 
 .PHONY: all clean run
