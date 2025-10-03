@@ -216,7 +216,7 @@ package body EmergeOS is
    -- =============================
    -- PULSE-COUPLED CORE INTEGRATION
    -- =============================
-   procedure Initialize_Pulse_Network is
+      procedure Initialize_Pulse_Network is
       Network : Pulse_Sync.Sync_Network;
       Hardware_Entity : Pulse_Types.Entity_Record;
       Build_Entity : Pulse_Types.Entity_Record;
@@ -251,14 +251,20 @@ package body EmergeOS is
       -- Calculate initial coherence
       Network.Coherence_Level := Pulse_Sync.Calculate_Coherence(Network);
       
-      -- Display pulse network status
-      Console_Put_String("Pulse Network: INITIALIZED");
+      -- Display pulse network status with enhanced visibility
+      Console_New_Line;
+      Console_Put_String(">>> EMERGENT CORE: ONLINE <<<");
+      Console_New_Line;
+      Console_Put_String("- Pulse Network: INITIALIZED");
       Console_New_Line;
       Console_Put_String("- Entities: ");
       Put_Natural(Network.Entity_Count);
       Console_Put_String(" | Coherence: ");
       Put_Natural(Network.Coherence_Level);
       Console_Put_String("%");
+      Console_New_Line;
+      Console_Put_String("- Hardware: Phase 0.5 | Build: Phase 0.3");
+      Console_New_Line;
       Console_New_Line;
    end Initialize_Pulse_Network;
 
