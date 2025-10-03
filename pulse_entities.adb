@@ -1,4 +1,4 @@
--- Base Entity Implementation
+-- Base Entity Implementation - FIXED TYPE CONVERSIONS
 package body Pulse_Entities is
 
    procedure Reset_Phase (Entity : in out Base_Entity) is
@@ -15,8 +15,11 @@ package body Pulse_Entities is
       Phase_Boost : Phase_Type;
    begin
       if Entity.Current_Phase < PHASE_THRESHOLD and Entity.Is_Active then
-         -- Core sync rule: phase boost proportional to current phase
-         Phase_Boost := (Entity.Current_Phase * Entity.Coupling_Str) / 100;
+         -- FIXED: Explicit type conversions for multiplication
+         Phase_Boost := Phase_Type(
+            (Natural(Entity.Current_Phase) * Natural(Entity.Coupling_Str)) / 100
+         );
+         
          Entity.Current_Phase := Entity.Current_Phase + Phase_Boost;
          
          -- Cap at threshold
