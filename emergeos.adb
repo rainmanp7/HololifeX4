@@ -239,14 +239,7 @@ package body EmergeOS is
       );
       
       -- Add REAL hardware entity to network
-      Pulse_Sync.Add_Entity(Network, (
-         ID => Hardware_Anchor.ID,
-         Phase => Hardware_Anchor.Current_Phase,
-         Frequency => Hardware_Anchor.Natural_Freq,
-         Coupling => Hardware_Anchor.Coupling_Str,
-         Flash_Count => Hardware_Anchor.Flash_Count,
-         Is_Active => Hardware_Anchor.Is_Active
-      ));
+      Pulse_Sync.Add_Entity(Network, Hardware_Anchor.Base);
       
       -- Add build entity to network
       Pulse_Sync.Add_Entity(Network, Build_Entity);
