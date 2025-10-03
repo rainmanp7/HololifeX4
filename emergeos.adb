@@ -1,16 +1,16 @@
--- emergeos.adb: HoloXlife OS Kernel - Entity Management & Holographic Memory
+-- emergeos.adb: HoloXlife OS Kernel with Pulse-Coupled Core Integration
 with System;
 with System.Storage_Elements;
+with Pulse_Types; use Pulse_Types;
+with Pulse_Sync;
 
 package body EmergeOS is
 
    -- Basic types for OS development
    type Byte is mod 2**8;
    type Word is mod 2**16; 
-   -- REMOVED: type DWord is mod 2**32; (unused)
    
    pragma Unreferenced (Word);
-   -- REMOVED: pragma Unreferenced (DWord); (no longer needed)
 
    -- ================================
    -- VGA CONSOLE SUBSYSTEM (Pure Ada)
@@ -40,7 +40,6 @@ package body EmergeOS is
    Console_Row : Natural := 0;
    Console_Col : Natural := 0;
    
-   -- State initialization procedure
    procedure Initialize_Console is
    begin
       Console_Row := 0;
@@ -115,7 +114,6 @@ package body EmergeOS is
    Holo_Allocated_Blocks : Natural := 0;
    Holo_Free_Blocks : Natural := HOLO_MATRIX_SIZE * HOLO_MATRIX_SIZE;
    
-   -- State initialization procedure
    procedure Initialize_Holo_Memory is
    begin
       Holo_Allocated_Blocks := 0;
@@ -187,7 +185,6 @@ package body EmergeOS is
    
    pragma Unreferenced (Entity_Table);
 
-   -- State initialization procedure
    procedure Initialize_Entities is
    begin
       Entity_Count := 0;
@@ -208,7 +205,6 @@ package body EmergeOS is
       return 0;
    end Create_Entity;
 
-   -- Simple number output without runtime dependencies
    procedure Put_Natural (N : Natural) is
    begin
       if N > 9 then
@@ -217,18 +213,73 @@ package body EmergeOS is
       Console_Put_Char (Character'Val(Character'Pos('0') + (N mod 10)));
    end Put_Natural;
 
+   -- =============================
+   -- PULSE-COUPLED CORE INTEGRATION
+   -- =============================
+   procedure Initialize_Pulse_Network is
+      Network : Pulse_Sync.Sync_Network;
+      Hardware_Entity : Pulse_Types.Entity_Record;
+      Build_Entity : Pulse_Types.Entity_Record;
+   begin
+      -- Initialize the pulse network
+      Pulse_Sync.Initialize_Network(Network);
+      
+      -- Create hardware entity
+      Hardware_Entity := (
+         ID => ENTITY_HARDWARE,
+         Phase => 500,  -- Start at phase 0.5
+         Frequency => 5,
+         Coupling => 10,
+         Flash_Count => 0,
+         Is_Active => True
+      );
+      
+      -- Create build entity  
+      Build_Entity := (
+         ID => ENTITY_BUILD,
+         Phase => 300,  -- Start at phase 0.3
+         Frequency => 7, 
+         Coupling => 10,
+         Flash_Count => 0,
+         Is_Active => True
+      );
+      
+      -- Add entities to network
+      Pulse_Sync.Add_Entity(Network, Hardware_Entity);
+      Pulse_Sync.Add_Entity(Network, Build_Entity);
+      
+      -- Calculate initial coherence
+      Network.Coherence_Level := Pulse_Sync.Calculate_Coherence(Network);
+      
+      -- Display pulse network status
+      Console_Put_String("Pulse Network: INITIALIZED");
+      Console_New_Line;
+      Console_Put_String("- Entities: ");
+      Put_Natural(Network.Entity_Count);
+      Console_Put_String(" | Coherence: ");
+      Put_Natural(Network.Coherence_Level);
+      Console_Put_String("%");
+      Console_New_Line;
+   end Initialize_Pulse_Network;
+
    procedure EmergeOS is
    begin
-      -- Initialize all subsystems first
+      -- Initialize all subsystems
       Initialize_Console;
       Initialize_Holo_Memory;
       Initialize_Entities;
       
       Console_Clear;
-      Console_Put_String ("HoloXlife OS v1.0 - Pure Ada Implementation");
+      Console_Put_String ("HoloXlife OS v1.0 - Pure Ada + Emergent Core");
       Console_New_Line;
       Console_Put_String ("===============================================");
       Console_New_Line;
+      Console_New_Line;
+
+      -- PHASE 2 INTEGRATION: Initialize pulse network
+      Console_Put_String ("Initializing Emergent Intelligence Core...");
+      Console_New_Line;
+      Initialize_Pulse_Network;
       Console_New_Line;
 
       Console_Put_String ("Initializing Holographic Memory System...");
@@ -292,13 +343,13 @@ package body EmergeOS is
       Console_New_Line;
       Console_Put_String ("===============================================");
       Console_New_Line;
-      Console_Put_String ("HOLOXLIFE OPERATING SYSTEM BOOT COMPLETE!");
+      Console_Put_String ("HOLOXLIFE OS BOOT COMPLETE!");
       Console_New_Line;
-      Console_Put_String ("Pure Ada Implementation - No C Code");
+      Console_Put_String ("Pure Ada + Emergent Intelligence Core");
       Console_New_Line;
       Console_Put_String ("Holographic Kernel: ONLINE");
       Console_New_Line;
-      Console_Put_String ("Entity Management: ACTIVE");
+      Console_Put_String ("Pulse Network: ACTIVE");
       Console_New_Line;
       Console_Put_String ("System Status: READY");
       Console_New_Line;
