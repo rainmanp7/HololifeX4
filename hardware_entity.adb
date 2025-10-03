@@ -1,4 +1,5 @@
 -- hardware_entity.adb: Hardware Reality Anchor Implementation
+-- Bare-metal compatible - no secondary stack, no string operations
 package body Hardware_Entity is
 
    procedure Initialize (Entity : in out Hardware_Anchor) is
@@ -20,11 +21,11 @@ package body Hardware_Entity is
    procedure Evolve_Phase (Entity : in out Hardware_Anchor) is
    begin
       if Entity.Base.Is_Active then
-         -- Simple phase evolution without complex arithmetic
-         Entity.Base.Phase := Entity.Base.Phase + 1;  -- Just increment by 1
+         -- FIXED: Simple phase evolution - increment by 1
+         Entity.Base.Phase := Entity.Base.Phase + 1;
          
-         -- Cap at threshold
-         if Entity.Base.Phase > PHASE_THRESHOLD then
+         -- FIXED: Remove impossible condition warning
+         if Entity.Base.Phase >= PHASE_THRESHOLD then
             Entity.Base.Phase := PHASE_THRESHOLD;
          end if;
          
@@ -39,39 +40,25 @@ package body Hardware_Entity is
       end if;
    end Evolve_Phase;
 
-   function Generate_Insight (Entity : Hardware_Anchor) return String is
+   function Check_Flash (Entity : Hardware_Anchor) return Boolean is
    begin
-      if Entity.Base.Phase >= PHASE_THRESHOLD then
-         -- Generate hardware-specific insights
-         if not Entity.Memory_Validated then
-            return "HARDWARE: Memory layout validation failed - check address mapping";
-         elsif Entity.Devices_Detected < 2 then
-            return "HARDWARE: Limited devices detected - VGA/Serial may be offline";
-         elsif Entity.Resource_Coherence < 80 then
-            return "HARDWARE: Resource coherence low - optimize memory allocation";
-         else
-            return "HARDWARE: System stable - " & 
-                   Natural'Image(Entity.Devices_Detected) & " devices active";
-         end if;
-      else
-         return "";  -- No insight yet
-      end if;
-   end Generate_Insight;
+      return Entity.Base.Phase >= PHASE_THRESHOLD;
+   end Check_Flash;
 
    procedure Receive_Pulse (Entity : in out Hardware_Anchor; Sender_ID : Entity_ID) is
    begin
       if Entity.Base.Is_Active and Entity.Base.Phase < PHASE_THRESHOLD then
-         -- Simple pulse reception: boost phase by coupling strength
-         Entity.Base.Phase := Entity.Base.Phase + Entity.Base.Coupling;
+         -- FIXED: Use explicit type conversion for arithmetic
+         Entity.Base.Phase := Phase_Type(Natural(Entity.Base.Phase) + Natural(Entity.Base.Coupling));
          
          -- Cap at threshold
-         if Entity.Base.Phase > PHASE_THRESHOLD then
+         if Entity.Base.Phase >= PHASE_THRESHOLD then
             Entity.Base.Phase := PHASE_THRESHOLD;
          end if;
       end if;
    end Receive_Pulse;
 
-   -- Hardware validation functions
+   -- Hardware validation functions (stub implementations)
    function Validate_Memory_Layout return Boolean is
    begin
       return True;  -- Placeholder
@@ -86,10 +73,5 @@ package body Hardware_Entity is
    begin
       return 85;  -- Placeholder
    end Calculate_Resource_Coherence;
-
-   function Check_Hardware_Consistency (Entity : Hardware_Anchor) return Boolean is
-   begin
-      return Entity.Memory_Validated and (Entity.Devices_Detected >= 1);
-   end Check_Hardware_Consistency;
 
 end Hardware_Entity;
