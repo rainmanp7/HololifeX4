@@ -30,10 +30,32 @@ boot.o: boot.adb gnat.adc
 emergeos.o: emergeos.adb emergeos.ads gnat.adc
 	$(GCC) $(ADAFLAGS) emergeos.adb -o emergeos.o
 
-# Link Pure Ada OS kernel 
-kernel.bin: boot.o emergeos.o linker.ld
-	ld $(LDFLAGS) -o kernel.elf boot.o emergeos.o
+# ===========================================
+# PULSE-COUPLED CORE COMPILATION (PHASE 1)
+# ===========================================
+
+# Compile Pulse-Coupled Core Types
+pulse_types.o: pulse_types.ads gnat.adc
+	$(GCC) $(ADAFLAGS) pulse_types.ads -o pulse_types.o
+
+# Compile Base Entity Framework
+pulse_entities.o: pulse_entities.ads pulse_entities.adb pulse_types.ads gnat.adc
+	$(GCC) $(ADAFLAGS) pulse_entities.adb -o pulse_entities.o
+
+# Compile Synchronization Engine
+pulse_sync.o: pulse_sync.ads pulse_sync.adb pulse_types.ads pulse_entities.ads gnat.adc
+	$(GCC) $(ADAFLAGS) pulse_sync.adb -o pulse_sync.o
+
+# ===========================================
+# ENHANCED KERNEL LINKING WITH PULSE CORE
+# ===========================================
+
+# Link Pure Ada OS kernel with Pulse-Coupled Core
+kernel.bin: boot.o emergeos.o pulse_types.o pulse_entities.o pulse_sync.o linker.ld
+	@echo "Linking HoloXlife OS with Emergent Pulse-Coupled Core..."
+	ld $(LDFLAGS) -o kernel.elf boot.o emergeos.o pulse_types.o pulse_entities.o pulse_sync.o
 	objcopy -O binary kernel.elf kernel.bin
+	@echo "✅ Kernel linked with Pulse-Coupled Core"
 
 # Build bootloader from assembly
 boot.bin: boot.asm kernel.bin
@@ -47,16 +69,16 @@ emergeos.img: boot.bin kernel.bin
 	dd if=/dev/zero of=$@ bs=512 count=2880 2>/dev/null
 	dd if=boot.bin of=$@ conv=notrunc 2>/dev/null
 	dd if=kernel.bin of=$@ bs=512 seek=1 conv=notrunc 2>/dev/null
-	@echo "HoloXlife OS (Pure Ada) image created: emergeos.img"
+	@echo "HoloXlife OS (Pure Ada + Emergent Core) image created: emergeos.img"
 
 # Run Pure Ada OS in Bochs
 run: emergeos.img
-	@echo "Booting HoloXlife Pure Ada Operating System..."
+	@echo "Booting HoloXlife Pure Ada Operating System with Emergent Core..."
 	$(BOCHS) -f $(BOCHS_CONFIG)
 
-# Clean build artifacts
+# Clean build artifacts (including pulse core)
 clean:
 	rm -f *.bin *.o *.img *.elf *.ali gnat.adc
-	@echo "Pure Ada OS build cleaned"
+	@echo "Pure Ada OS + Pulse Core build cleaned"
 
 .PHONY: all clean run
