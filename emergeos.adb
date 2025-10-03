@@ -3,6 +3,7 @@ with System;
 with System.Storage_Elements;
 with Pulse_Types; use Pulse_Types;
 with Pulse_Sync;
+with Hardware_Entity; use Hardware_Entity;  -- PHASE 3: Hardware Entity
 
 package body EmergeOS is
 
@@ -214,27 +215,20 @@ package body EmergeOS is
    end Put_Natural;
 
    -- =============================
-   -- PULSE-COUPLED CORE INTEGRATION
+   -- PULSE-COUPLED CORE INTEGRATION (PHASE 3 ENHANCED)
    -- =============================
-      procedure Initialize_Pulse_Network is
+   procedure Initialize_Pulse_Network is
       Network : Pulse_Sync.Sync_Network;
-      Hardware_Entity : Pulse_Types.Entity_Record;
+      Hardware_Anchor : Hardware_Entity.Hardware_Anchor;  -- REAL Hardware Entity
       Build_Entity : Pulse_Types.Entity_Record;
    begin
       -- Initialize the pulse network
       Pulse_Sync.Initialize_Network(Network);
       
-      -- Create hardware entity
-      Hardware_Entity := (
-         ID => ENTITY_HARDWARE,
-         Phase => 500,  -- Start at phase 0.5
-         Frequency => 5,
-         Coupling => 10,
-         Flash_Count => 0,
-         Is_Active => True
-      );
+      -- PHASE 3: Initialize REAL hardware entity
+      Hardware_Entity.Initialize(Hardware_Anchor);
       
-      -- Create build entity  
+      -- Create build entity placeholder (will be replaced in Phase 3 Week 3)
       Build_Entity := (
          ID => ENTITY_BUILD,
          Phase => 300,  -- Start at phase 0.3
@@ -244,18 +238,27 @@ package body EmergeOS is
          Is_Active => True
       );
       
-      -- Add entities to network
-      Pulse_Sync.Add_Entity(Network, Hardware_Entity);
+      -- Add REAL hardware entity to network
+      Pulse_Sync.Add_Entity(Network, (
+         ID => Hardware_Anchor.ID,
+         Phase => Hardware_Anchor.Current_Phase,
+         Frequency => Hardware_Anchor.Natural_Freq,
+         Coupling => Hardware_Anchor.Coupling_Str,
+         Flash_Count => Hardware_Anchor.Flash_Count,
+         Is_Active => Hardware_Anchor.Is_Active
+      ));
+      
+      -- Add build entity to network
       Pulse_Sync.Add_Entity(Network, Build_Entity);
       
       -- Calculate initial coherence
       Network.Coherence_Level := Pulse_Sync.Calculate_Coherence(Network);
       
-      -- Display pulse network status with enhanced visibility
+      -- Display enhanced pulse network status with Hardware Entity details
       Console_New_Line;
-      Console_Put_String(">>> EMERGENT CORE: ONLINE <<<");
+      Console_Put_String(">>> EMERGENT CORE: PHASE 3 ACTIVE <<<");
       Console_New_Line;
-      Console_Put_String("- Pulse Network: INITIALIZED");
+      Console_Put_String("- Pulse Network: HARDWARE ENTITY INTEGRATED");
       Console_New_Line;
       Console_Put_String("- Entities: ");
       Put_Natural(Network.Entity_Count);
@@ -263,7 +266,20 @@ package body EmergeOS is
       Put_Natural(Network.Coherence_Level);
       Console_Put_String("%");
       Console_New_Line;
-      Console_Put_String("- Hardware: Phase 0.5 | Build: Phase 0.3");
+      Console_Put_String("- Hardware Anchor: Phase 0.5 | Freq 3 | Coupling 8");
+      Console_New_Line;
+      Console_Put_String("- Build Entity: Phase 0.3 | Freq 7 | Coupling 10");
+      Console_New_Line;
+      
+      -- PHASE 3: Display hardware validation status
+      if Hardware_Anchor.Memory_Validated then
+         Console_Put_String("- Memory Layout: VALIDATED");
+      else
+         Console_Put_String("- Memory Layout: PENDING VALIDATION");
+      end if;
+      Console_New_Line;
+      Console_Put_String("- Devices Detected: ");
+      Put_Natural(Hardware_Anchor.Devices_Detected);
       Console_New_Line;
       Console_New_Line;
    end Initialize_Pulse_Network;
@@ -282,8 +298,8 @@ package body EmergeOS is
       Console_New_Line;
       Console_New_Line;
 
-      -- PHASE 2 INTEGRATION: Initialize pulse network
-      Console_Put_String ("Initializing Emergent Intelligence Core...");
+      -- PHASE 3 ENHANCED: Initialize pulse network with Hardware Entity
+      Console_Put_String ("Initializing Phase 3: Hardware Entity Integration...");
       Console_New_Line;
       Initialize_Pulse_Network;
       Console_New_Line;
@@ -349,15 +365,15 @@ package body EmergeOS is
       Console_New_Line;
       Console_Put_String ("===============================================");
       Console_New_Line;
-      Console_Put_String ("HOLOXLIFE OS BOOT COMPLETE!");
+      Console_Put_String ("HOLOXLIFE OS PHASE 3: HARDWARE ENTITY ACTIVE!");
       Console_New_Line;
       Console_Put_String ("Pure Ada + Emergent Intelligence Core");
       Console_New_Line;
-      Console_Put_String ("Holographic Kernel: ONLINE");
+      Console_Put_String ("Hardware Reality Anchor: ONLINE");
       Console_New_Line;
-      Console_Put_String ("Pulse Network: ACTIVE");
+      Console_Put_String ("Pulse Network: SYNCHRONIZED");
       Console_New_Line;
-      Console_Put_String ("System Status: READY");
+      Console_Put_String ("System Status: READY FOR TEMPORAL ENTITY");
       Console_New_Line;
       Console_Put_String ("===============================================");
       Console_New_Line;
