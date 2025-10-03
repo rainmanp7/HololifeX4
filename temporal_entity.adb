@@ -1,4 +1,4 @@
--- temporal_entity.adb: Temporal Foresight Implementation
+-- temporal_entity.adb: Temporal Foresight Implementation (FIXED)
 -- Bare-metal compatible - no secondary stack, truthful naming
 package body Temporal_Entity is
 
@@ -22,10 +22,10 @@ package body Temporal_Entity is
    begin
       if Entity.Base.Is_Active then
          -- Temporal entity evolves faster than hardware
-         Entity.Base.Phase := Entity.Base.Phase + 1;
+         Entity.Base.Phase := Entity.Base.Phase + Entity.Base.Frequency;
          
-         -- Cap at threshold with proper condition
-         if Entity.Base.Phase >= PHASE_THRESHOLD then
+         -- Cap at threshold with proper condition (FIXED: use "=" not ">=")
+         if Entity.Base.Phase = PHASE_THRESHOLD then
             Entity.Base.Phase := PHASE_THRESHOLD;
          end if;
          
@@ -45,23 +45,28 @@ package body Temporal_Entity is
    end Check_Flash;
 
    procedure Receive_Pulse (Entity : in out Temporal_Anchor; Sender_ID : Entity_ID) is
+      Coupling_Effect : Phase_Type;
    begin
       if Entity.Base.Is_Active and Entity.Base.Phase < PHASE_THRESHOLD then
          -- Temporal entity responds strongly to hardware and build entities
          case Sender_ID is
             when ENTITY_HARDWARE =>
                -- Strong coupling to hardware for timing coordination
-               Entity.Base.Phase := Entity.Base.Phase + Entity.Base.Coupling;
+               -- Convert coupling to phase effect (FIXED: proper type handling)
+               Coupling_Effect := Phase_Type(Entity.Base.Coupling);
             when ENTITY_BUILD =>
                -- Moderate coupling to build for optimization insights
-               Entity.Base.Phase := Entity.Base.Phase + (Entity.Base.Coupling / 2);
+               Coupling_Effect := Phase_Type(Entity.Base.Coupling / 2);
             when others =>
                -- Weak coupling to other entities
-               Entity.Base.Phase := Entity.Base.Phase + 1;
+               Coupling_Effect := 1;
          end case;
          
-         -- Cap at threshold
-         if Entity.Base.Phase >= PHASE_THRESHOLD then
+         -- Apply phase adjustment with proper type safety
+         Entity.Base.Phase := Entity.Base.Phase + Coupling_Effect;
+         
+         -- Cap at threshold (FIXED: use "=" not ">=")
+         if Entity.Base.Phase = PHASE_THRESHOLD then
             Entity.Base.Phase := PHASE_THRESHOLD;
          end if;
       end if;
