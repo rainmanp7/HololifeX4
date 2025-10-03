@@ -47,15 +47,23 @@ pulse_sync.o: pulse_sync.ads pulse_sync.adb pulse_types.ads pulse_entities.ads g
 	$(GCC) $(ADAFLAGS) pulse_sync.adb -o pulse_sync.o
 
 # ===========================================
-# ENHANCED KERNEL LINKING WITH PULSE CORE
+# PHASE 3: HARDWARE ENTITY COMPILATION
 # ===========================================
 
-# Link Pure Ada OS kernel with Pulse-Coupled Core
-kernel.bin: boot.o emergeos.o pulse_types.o pulse_entities.o pulse_sync.o linker.ld
-	@echo "Linking HoloXlife OS with Emergent Pulse-Coupled Core..."
-	ld $(LDFLAGS) -o kernel.elf boot.o emergeos.o pulse_types.o pulse_entities.o pulse_sync.o
+# Compile Hardware Entity
+hardware_entity.o: hardware_entity.ads hardware_entity.adb pulse_types.ads pulse_entities.ads gnat.adc
+	$(GCC) $(ADAFLAGS) hardware_entity.adb -o hardware_entity.o
+
+# ===========================================
+# ENHANCED KERNEL LINKING WITH HARDWARE ENTITY
+# ===========================================
+
+# Link Pure Ada OS kernel with Hardware Entity
+kernel.bin: boot.o emergeos.o pulse_types.o pulse_entities.o pulse_sync.o hardware_entity.o linker.ld
+	@echo "Linking HoloXlife OS with Hardware Entity..."
+	ld $(LDFLAGS) -o kernel.elf boot.o emergeos.o pulse_types.o pulse_entities.o pulse_sync.o hardware_entity.o
 	objcopy -O binary kernel.elf kernel.bin
-	@echo "✅ Kernel linked with Pulse-Coupled Core"
+	@echo "✅ Kernel linked with Hardware Entity"
 
 # Build bootloader from assembly
 boot.bin: boot.asm kernel.bin
@@ -69,16 +77,16 @@ emergeos.img: boot.bin kernel.bin
 	dd if=/dev/zero of=$@ bs=512 count=2880 2>/dev/null
 	dd if=boot.bin of=$@ conv=notrunc 2>/dev/null
 	dd if=kernel.bin of=$@ bs=512 seek=1 conv=notrunc 2>/dev/null
-	@echo "HoloXlife OS (Pure Ada + Emergent Core) image created: emergeos.img"
+	@echo "HoloXlife OS (Phase 3: Hardware Entity) image created: emergeos.img"
 
 # Run Pure Ada OS in Bochs
 run: emergeos.img
-	@echo "Booting HoloXlife Pure Ada Operating System with Emergent Core..."
+	@echo "Booting HoloXlife Pure Ada Operating System with Hardware Entity..."
 	$(BOCHS) -f $(BOCHS_CONFIG)
 
-# Clean build artifacts (including pulse core)
+# Clean build artifacts (including hardware entity)
 clean:
 	rm -f *.bin *.o *.img *.elf *.ali gnat.adc
-	@echo "Pure Ada OS + Pulse Core build cleaned"
+	@echo "Pure Ada OS + Hardware Entity build cleaned"
 
 .PHONY: all clean run
