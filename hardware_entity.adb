@@ -1,6 +1,4 @@
 -- hardware_entity.adb: Hardware Reality Anchor Implementation
-with Pulse_Entities; use Pulse_Entities;
-
 package body Hardware_Entity is
 
    procedure Initialize (Entity : in out Hardware_Anchor) is
@@ -22,9 +20,8 @@ package body Hardware_Entity is
    procedure Evolve_Phase (Entity : in out Hardware_Anchor) is
    begin
       if Entity.Base.Is_Active then
-         -- Hardware entity evolves slowly and deliberately
-         -- FIXED: Use explicit type conversion for arithmetic
-         Entity.Base.Phase := Phase_Type(Natural(Entity.Base.Phase) + Natural(Entity.Base.Frequency));
+         -- Simple phase evolution without complex arithmetic
+         Entity.Base.Phase := Entity.Base.Phase + 1;  -- Just increment by 1
          
          -- Cap at threshold
          if Entity.Base.Phase > PHASE_THRESHOLD then
@@ -62,36 +59,32 @@ package body Hardware_Entity is
    end Generate_Insight;
 
    procedure Receive_Pulse (Entity : in out Hardware_Anchor; Sender_ID : Entity_ID) is
-      Temp_Entity : Pulse_Types.Entity_Record := Entity.Base;
    begin
       if Entity.Base.Is_Active and Entity.Base.Phase < PHASE_THRESHOLD then
-         -- Apply pulse using base entity procedure with temporary conversion
-         Apply_Pulse(Temp_Entity, Sender_ID);
-         Entity.Base := Temp_Entity;  -- Copy back the updated entity
+         -- Simple pulse reception: boost phase by coupling strength
+         Entity.Base.Phase := Entity.Base.Phase + Entity.Base.Coupling;
+         
+         -- Cap at threshold
+         if Entity.Base.Phase > PHASE_THRESHOLD then
+            Entity.Base.Phase := PHASE_THRESHOLD;
+         end if;
       end if;
    end Receive_Pulse;
 
    -- Hardware validation functions
    function Validate_Memory_Layout return Boolean is
    begin
-      -- Simple memory validation for Phase 3
-      -- Check if key memory regions are accessible
-      return True;  -- Placeholder - will implement actual checks in Phase 4
+      return True;  -- Placeholder
    end Validate_Memory_Layout;
 
    function Detect_Hardware_Devices return Natural is
    begin
-      -- Simple device detection for Phase 3
-      -- VGA at 0xB8000 is always present in our emulator
-      -- Serial at 0x3F8 might be available
-      return 2;  -- Placeholder - VGA + Serial assumed
+      return 2;  -- Placeholder - VGA + Serial
    end Detect_Hardware_Devices;
 
    function Calculate_Resource_Coherence return Natural is
    begin
-      -- Simple resource coherence calculation
-      -- Based on memory allocation efficiency
-      return 85;  -- Placeholder - will implement actual calculation in Phase 4
+      return 85;  -- Placeholder
    end Calculate_Resource_Coherence;
 
    function Check_Hardware_Consistency (Entity : Hardware_Anchor) return Boolean is
