@@ -1,14 +1,18 @@
 -- hardware_entity.adb: Hardware Reality Anchor Implementation
+with Pulse_Entities; use Pulse_Entities;
+
 package body Hardware_Entity is
 
    procedure Initialize (Entity : in out Hardware_Anchor) is
    begin
-      Entity.ID := ENTITY_HARDWARE;
-      Entity.Current_Phase := 500;  -- Start at phase 0.5
-      Entity.Natural_Freq := HARDWARE_FREQUENCY;
-      Entity.Coupling_Str := HARDWARE_COUPLING;
-      Entity.Flash_Count := 0;
-      Entity.Is_Active := True;
+      Entity.Base := (
+         ID => ENTITY_HARDWARE,
+         Phase => 500,  -- Start at phase 0.5
+         Frequency => HARDWARE_FREQUENCY,
+         Coupling => HARDWARE_COUPLING,
+         Flash_Count => 0,
+         Is_Active => True
+      );
       Entity.Memory_Validated := False;
       Entity.Devices_Detected := 0;
       Entity.Resource_Coherence := 0;
@@ -17,13 +21,13 @@ package body Hardware_Entity is
 
    procedure Evolve_Phase (Entity : in out Hardware_Anchor) is
    begin
-      if Entity.Is_Active then
+      if Entity.Base.Is_Active then
          -- Hardware entity evolves slowly and deliberately
-         Entity.Current_Phase := Entity.Current_Phase + Entity.Natural_Freq;
+         Entity.Base.Phase := Entity.Base.Phase + Entity.Base.Frequency;
          
          -- Cap at threshold
-         if Entity.Current_Phase > PHASE_THRESHOLD then
-            Entity.Current_Phase := PHASE_THRESHOLD;
+         if Entity.Base.Phase > PHASE_THRESHOLD then
+            Entity.Base.Phase := PHASE_THRESHOLD;
          end if;
          
          -- Every 100 cycles, validate hardware
@@ -39,9 +43,7 @@ package body Hardware_Entity is
 
    function Generate_Insight (Entity : Hardware_Anchor) return String is
    begin
-      if Entity.Current_Phase >= PHASE_THRESHOLD then
-         Entity.Flash_Count := Entity.Flash_Count + 1;
-         
+      if Entity.Base.Phase >= PHASE_THRESHOLD then
          -- Generate hardware-specific insights
          if not Entity.Memory_Validated then
             return "HARDWARE: Memory layout validation failed - check address mapping";
@@ -60,16 +62,9 @@ package body Hardware_Entity is
 
    procedure Receive_Pulse (Entity : in out Hardware_Anchor; Sender_ID : Entity_ID) is
    begin
-      if Entity.Is_Active and Entity.Current_Phase < PHASE_THRESHOLD then
-         -- Hardware entity responds strongly to build and temporal entities
-         case Sender_ID is
-            when ENTITY_BUILD =>
-               Apply_Pulse(Entity, Sender_ID);  -- Strong coupling to build
-            when ENTITY_TEMPORAL =>
-               Apply_Pulse(Entity, Sender_ID);  -- Moderate coupling to temporal
-            when others =>
-               null;  -- Weak coupling to other entities
-         end case;
+      if Entity.Base.Is_Active and Entity.Base.Phase < PHASE_THRESHOLD then
+         -- Apply pulse using base entity procedure
+         Apply_Pulse(Entity.Base, Sender_ID);
       end if;
    end Receive_Pulse;
 
@@ -96,9 +91,9 @@ package body Hardware_Entity is
       return 85;  -- Placeholder - will implement actual calculation in Phase 4
    end Calculate_Resource_Coherence;
 
-   function Check_Hardware_Consistency return Boolean is
+   function Check_Hardware_Consistency (Entity : Hardware_Anchor) return Boolean is
    begin
-      return Validate_Memory_Layout and (Detect_Hardware_Devices >= 1);
+      return Entity.Memory_Validated and (Entity.Devices_Detected >= 1);
    end Check_Hardware_Consistency;
 
 end Hardware_Entity;
