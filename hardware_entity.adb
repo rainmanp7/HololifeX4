@@ -23,7 +23,8 @@ package body Hardware_Entity is
    begin
       if Entity.Base.Is_Active then
          -- Hardware entity evolves slowly and deliberately
-         Entity.Base.Phase := Entity.Base.Phase + Entity.Base.Frequency;
+         -- FIXED: Use explicit type conversion for arithmetic
+         Entity.Base.Phase := Phase_Type(Natural(Entity.Base.Phase) + Natural(Entity.Base.Frequency));
          
          -- Cap at threshold
          if Entity.Base.Phase > PHASE_THRESHOLD then
@@ -61,10 +62,12 @@ package body Hardware_Entity is
    end Generate_Insight;
 
    procedure Receive_Pulse (Entity : in out Hardware_Anchor; Sender_ID : Entity_ID) is
+      Temp_Entity : Pulse_Types.Entity_Record := Entity.Base;
    begin
       if Entity.Base.Is_Active and Entity.Base.Phase < PHASE_THRESHOLD then
-         -- Apply pulse using base entity procedure
-         Apply_Pulse(Entity.Base, Sender_ID);
+         -- Apply pulse using base entity procedure with temporary conversion
+         Apply_Pulse(Temp_Entity, Sender_ID);
+         Entity.Base := Temp_Entity;  -- Copy back the updated entity
       end if;
    end Receive_Pulse;
 
