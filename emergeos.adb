@@ -290,7 +290,12 @@ package body EmergeOS is
                case Flashing_Entities(I).ID is
                   when ENTITY_HARDWARE =>
                      Console_Put_String("  🔧 HARDWARE: Memory_Valid=");
-                     Console_Put_Char(Boolean'Pos(Hardware_Anchor.Memory_Validated) + Character'Pos('0'));
+                     -- NEW (FIXED):
+if Hardware_Anchor.Memory_Validated then
+   Console_Put_Char('1');
+else
+   Console_Put_Char('0');
+end if;
                      Console_Put_String(" Devices=");
                      Put_Natural(Hardware_Anchor.Devices_Detected);
                      Console_Put_String(" Coherence=");
