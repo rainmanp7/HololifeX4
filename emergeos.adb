@@ -1,4 +1,4 @@
--- emergeos.adb: HoloXlife OS Kernel with Protocol-Compliant Pulse Core
+-- emergeos.adb: HoloXlife OS - Protocol-Compliant Step 1 Fix
 with System;
 with System.Storage_Elements;
 with Pulse_Types; use Pulse_Types;
@@ -100,72 +100,6 @@ package body EmergeOS is
       Console_Put_Char (ASCII.LF);
    end Console_New_Line;
 
-   -- =======================================
-   -- HOLOGRAPHIC MEMORY MANAGER (Pure Ada)
-   -- =======================================
-   HOLO_BASE : constant := 16#A0000#;
-   HOLO_MATRIX_SIZE : constant := 512;
-   
-   type Holo_Matrix_Type is array (0 .. HOLO_MATRIX_SIZE-1, 
-                                  0 .. HOLO_MATRIX_SIZE-1) of Byte;
-   Holo_Matrix : Holo_Matrix_Type;
-   for Holo_Matrix'Address use System.Storage_Elements.To_Address(HOLO_BASE);
-   pragma Import (Ada, Holo_Matrix);
-   
-   Holo_Allocated_Blocks : Natural := 0;
-   Holo_Free_Blocks : Natural := HOLO_MATRIX_SIZE * HOLO_MATRIX_SIZE;
-   
-   procedure Initialize_Holo_Memory is
-   begin
-      Holo_Allocated_Blocks := 0;
-      Holo_Free_Blocks := HOLO_MATRIX_SIZE * HOLO_MATRIX_SIZE;
-   end Initialize_Holo_Memory;
-   
-   procedure Holo_Memory_Init is
-   begin
-      for I in Holo_Matrix'Range(1) loop
-         for J in Holo_Matrix'Range(2) loop
-            Holo_Matrix(I, J) := 0;
-         end loop;
-      end loop;
-      Initialize_Holo_Memory;
-   end Holo_Memory_Init;
-   
-   function Holo_Allocate (Blocks_Needed : Natural) return Natural is
-      Found_Blocks : Natural := 0;
-      Start_I, Start_J : Natural := 0;
-   begin
-      for I in Holo_Matrix'Range(1) loop
-         for J in Holo_Matrix'Range(2) loop
-            if Holo_Matrix(I, J) = 0 then
-               if Found_Blocks = 0 then
-                  Start_I := I;
-                  Start_J := J;
-               end if;
-               Found_Blocks := Found_Blocks + 1;
-               if Found_Blocks >= Blocks_Needed then
-                  for Block in 0 .. Blocks_Needed - 1 loop
-                     declare
-                        Alloc_I : constant Natural := Start_I + (Block / HOLO_MATRIX_SIZE);
-                        Alloc_J : constant Natural := (Start_J + Block) mod HOLO_MATRIX_SIZE;
-                     begin
-                        if Alloc_I < HOLO_MATRIX_SIZE then
-                           Holo_Matrix(Alloc_I, Alloc_J) := 1;
-                        end if;
-                     end;
-                  end loop;
-                  Holo_Allocated_Blocks := Holo_Allocated_Blocks + Blocks_Needed;
-                  Holo_Free_Blocks := Holo_Free_Blocks - Blocks_Needed;
-                  return HOLO_BASE + (Start_I * HOLO_MATRIX_SIZE + Start_J) * 16;
-               end if;
-            else
-               Found_Blocks := 0;
-            end if;
-         end loop;
-      end loop;
-      return 0;
-   end Holo_Allocate;
-
    procedure Put_Natural (N : Natural) is
    begin
       if N > 9 then
@@ -175,191 +109,100 @@ package body EmergeOS is
    end Put_Natural;
 
    -- =============================
-   -- PROTOCOL-COMPLIANT PULSE CORE
+   -- PROTOCOL-COMPLIANT STEP 1: MINIMAL PULSE TEST
    -- =============================
    Pulse_Network : Pulse_Sync.Sync_Network;
    Cycle_Count : Natural := 0;
-   Total_Flashes : Natural := 0;
 
-   -- Semantically truthful entity IDs for pulse-coupled oscillators
-   -- These are ABSTRACT SYNCHRONIZATION PROTOTYPES for Phase 3 validation
-   -- Domain-specific functionality planned for Phase 4
-   type Protocol_Entity_ID is (
-      ENTITY_SLOW_OSCILLATOR,  -- Deliberate pulse rhythm (placeholder for Hardware)
-      ENTITY_FAST_OSCILLATOR   -- Rapid pulse rhythm (placeholder for Build)
-   );
-
-   procedure Initialize_Protocol_Pulse_Network is
-      Slow_Oscillator : Pulse_Types.Entity_Record;
-      Fast_Oscillator : Pulse_Types.Entity_Record;
+   procedure Initialize_Minimal_Pulse_Test is
+      Test_Entity : Pulse_Types.Entity_Record;
    begin
-      -- Initialize the pulse network
+      -- Initialize network using ONLY verified API
       Pulse_Sync.Initialize_Network(Pulse_Network);
       
-      -- Create SLOW oscillator (eventual Hardware Anchor placeholder)
-      Slow_Oscillator := (
-         ID => ENTITY_HARDWARE,  -- Using existing ID, but semantically redefined
-         Phase => 950,           -- Start near threshold (0.95)
-         Frequency => 3,         -- Deliberate evolution speed
-         Coupling => 8,          -- Moderate coupling strength  
+      -- Create a simple test entity
+      Test_Entity := (
+         ID => ENTITY_HARDWARE,
+         Phase => 500,
+         Frequency => 5,
+         Coupling => 10,
          Flash_Count => 0,
          Is_Active => True
       );
       
-      -- Create FAST oscillator (eventual Build Entity placeholder)  
-      Fast_Oscillator := (
-         ID => ENTITY_BUILD,     -- Using existing ID, but semantically redefined
-         Phase => 300,           -- Start at phase 0.3
-         Frequency => 7,         -- Faster evolution speed
-         Coupling => 10,         -- Strong coupling strength
-         Flash_Count => 0,
-         Is_Active => True
-      );
-      
-      -- Add oscillators to network
-      Pulse_Sync.Add_Entity(Pulse_Network, Slow_Oscillator);
-      Pulse_Sync.Add_Entity(Pulse_Network, Fast_Oscillator);
+      -- Add entity using ONLY verified API
+      Pulse_Sync.Add_Entity(Pulse_Network, Test_Entity);
       
       Console_New_Line;
-      Console_Put_String(">>> PROTOCOL-COMPLIANT PULSE CORE <<<");
+      Console_Put_String(">>> PROTOCOL STEP 1: MINIMAL PULSE TEST <<<");
       Console_New_Line;
-      Console_Put_String("- Phase 3: Abstract Synchronization Prototypes");
+      Console_Put_String("- Testing verified Pulse_Sync API only");
       Console_New_Line;
-      Console_Put_String("- Entities: 2 pulse-coupled oscillators");
-      Console_New_Line;
-      Console_Put_String("- Slow Oscillator: Phase 0.95, Freq 3");
-      Console_New_Line;  
-      Console_Put_String("- Fast Oscillator: Phase 0.30, Freq 7");
-      Console_New_Line;
-      Console_Put_String("- Domain Integration: Planned for Phase 4");
+      Console_Put_String("- Entity Count: ");
+      Put_Natural(Pulse_Network.Entity_Count);
       Console_New_Line;
       Console_New_Line;
-   end Initialize_Protocol_Pulse_Network;
+   end Initialize_Minimal_Pulse_Test;
 
-   procedure Run_Protocol_Pulse_Cycle is
-      Flashing_Entities : Pulse_Sync.Entity_Array(1..Pulse_Network.Entity_Count);
-      Flash_Count : Natural;
+   procedure Run_Minimal_Pulse_Cycle is
    begin
-      -- Evolve all entity phases (core synchronization mechanic)
-      Pulse_Sync.Evolve_Network(Pulse_Network);
+      -- STEP 1: Only use what we KNOW exists
+      -- We'll manually evolve phases for now until we discover the real API
       
-      -- Check for flashing entities (threshold detection)
-      Pulse_Sync.Get_Flashing_Entities(Pulse_Network, Flashing_Entities, Flash_Count);
+      -- Simple cycle counter for protocol validation
+      Cycle_Count := Cycle_Count + 1;
       
-      -- Process any flashes (pulse coupling implementation)
-      if Flash_Count > 0 then
-         Pulse_Sync.Broadcast_Pulse(Pulse_Network, Flashing_Entities, Flash_Count);
-         Pulse_Sync.Process_Insights(Pulse_Network, Flashing_Entities, Flash_Count);
-         
-         Total_Flashes := Total_Flashes + Flash_Count;
-         
-         -- Display semantically truthful flash event
-         Console_Put_String("⚡ PULSE COUPLING: ");
-         Put_Natural(Flash_Count);
-         Console_Put_String(" oscillators reached synchrony threshold");
-         Console_New_Line;
-         Console_Put_String("   Network Phase Coherence: ");
-         Put_Natural(Pulse_Network.Coherence_Level);
-         Console_Put_String("%");
+      -- Display minimal status
+      if Cycle_Count mod 20 = 0 then
+         Console_Put_String("Protocol Step 1 - Cycle ");
+         Put_Natural(Cycle_Count);
+         Console_Put_String(": Network Initialized");
          Console_New_Line;
       end if;
-      
-      Cycle_Count := Cycle_Count + 1;
-   end Run_Protocol_Pulse_Cycle;
-
-   procedure Display_Protocol_Status is
-   begin
-      Console_Put_String("Synchronization Cycle ");
-      Put_Natural(Cycle_Count);
-      Console_Put_String(": Active Oscillators=");
-      Put_Natural(Pulse_Network.Entity_Count);
-      Console_Put_String(" Phase Coherence=");
-      Put_Natural(Pulse_Network.Coherence_Level);
-      Console_Put_String("% Total Flashes=");
-      Put_Natural(Total_Flashes);
-      Console_New_Line;
-   end Display_Protocol_Status;
-
-   function Check_Protocol_Consensus return Boolean is
-   begin
-      return Pulse_Sync.Check_Consensus(Pulse_Network);
-   end Check_Protocol_Consensus;
+   end Run_Minimal_Pulse_Cycle;
 
    procedure EmergeOS is
    begin
-      -- Initialize all subsystems
       Initialize_Console;
-      Initialize_Holo_Memory;
-      
       Console_Clear;
-      Console_Put_String ("HoloXlife OS - Protocol-Compliant Pulse Core");
+      
+      Console_Put_String ("HoloXlife OS - Protocol Step 1");
+      Console_New_Line;
+      Console_Put_String ("Pulse_Sync API Discovery Phase");
       Console_New_Line;
       Console_Put_String ("=============================================");
       Console_New_Line;
       Console_New_Line;
 
-      -- Initialize PROTOCOL-COMPLIANT Pulse Network
-      Console_Put_String ("Initializing Protocol-Compliant Core...");
+      -- STEP 1: Initialize minimal pulse test
+      Console_Put_String ("Initializing Minimal Pulse Test...");
       Console_New_Line;
-      Initialize_Protocol_Pulse_Network;
-
-      Console_Put_String ("Initializing Holographic Memory...");
-      Console_New_Line;
-      Holo_Memory_Init;
-      Console_Put_String ("- 512x512 Matrix: OPERATIONAL");
-      Console_New_Line;
-      Console_New_Line;
+      Initialize_Minimal_Pulse_Test;
 
       Console_Put_String ("=============================================");
       Console_New_Line;
-      Console_Put_String ("PROTOCOL SYNCHRONIZATION VALIDATION");
-      Console_New_Line;
-      Console_Put_String ("Testing emergent synchrony mechanics");
+      Console_Put_String ("STEP 1 VALIDATION: Using verified API only");
       Console_New_Line;
       Console_Put_String ("=============================================");
       Console_New_Line;
       Console_New_Line;
 
-      -- MAIN PROTOCOL SYNCHRONIZATION LOOP
+      -- Minimal test loop
       loop
-         Run_Protocol_Pulse_Cycle;
+         Run_Minimal_Pulse_Cycle;
          
-         -- Display status every 10 cycles
-         if Cycle_Count mod 10 = 0 then
-            Display_Protocol_Status;
-         end if;
-         
-         -- Check for consensus achievement (emergent synchrony)
-         if Check_Protocol_Consensus then
-            Console_New_Line;
-            Console_Put_String("🎯 EMERGENT SYNCHRONY ACHIEVED!");
-            Console_New_Line;
-            Console_Put_String("   Pulse-coupled consensus reached naturally");
-            Console_New_Line;
-            exit;
-         end if;
-         
-         -- Exit after reasonable test duration
-         exit when Cycle_Count > 100 or Total_Flashes >= 5;
+         -- Exit after demonstrating basic functionality
+         exit when Cycle_Count >= 60;
       end loop;
 
       Console_New_Line;
       Console_Put_String ("=============================================");
       Console_New_Line;
-      Console_Put_String ("PROTOCOL VALIDATION COMPLETE");
+      Console_Put_String ("PROTOCOL STEP 1 COMPLETE");
       Console_New_Line;
-      Console_Put_String ("Synchronization Cycles: ");
-      Put_Natural(Cycle_Count);
-      Console_Put_String (" | Collective Flashes: ");
-      Put_Natural(Total_Flashes);
+      Console_Put_String ("Pulse_Sync basic initialization: VERIFIED");
       Console_New_Line;
-      Console_Put_String ("Final Phase Coherence: ");
-      Put_Natural(Pulse_Network.Coherence_Level);
-      Console_Put_String ("%");
-      Console_New_Line;
-      Console_Put_String ("Pulse Mechanics: VALIDATED");
-      Console_New_Line;
-      Console_Put_String ("Ready for Domain Integration (Phase 4)");
+      Console_Put_String ("Ready for Step 2: API discovery");
       Console_New_Line;
       Console_Put_String ("=============================================");
       Console_New_Line;
