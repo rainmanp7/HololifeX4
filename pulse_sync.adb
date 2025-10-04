@@ -1,4 +1,4 @@
--- Synchronization Engine Implementation - ENHANCED for Phase 3
+-- Synchronization Engine Implementation - TYPE-CORRECTED for Phase 3
 package body Pulse_Sync is
 
    procedure Initialize_Network (Network : in out Sync_Network) is
@@ -36,9 +36,9 @@ package body Pulse_Sync is
       return (Average_Phase * 100) / Natural(PHASE_THRESHOLD);
    end Calculate_Coherence;
 
-   -- ENHANCED: Get flashing entities with proper signature
+   -- CORRECTED: Get flashing entities with proper signature
    procedure Get_Flashing_Entities(Network : in Sync_Network;
-                                  Flashers : out Entity_Array;
+                                  Flashers : out Local_Entity_Array;
                                   Count : out Natural) is
       Temp_Count : Natural := 0;
    begin
@@ -57,9 +57,9 @@ package body Pulse_Sync is
       Count := Temp_Count;
    end Get_Flashing_Entities;
 
-   -- ENHANCED: Broadcast pulse to network with firefly coupling
+   -- CORRECTED: Broadcast pulse to network with firefly coupling
    procedure Broadcast_Pulse(Network : in out Sync_Network;
-                           Flashers : in Entity_Array;
+                           Flashers : in Local_Entity_Array;
                            Count : in Natural) is
       Coupling_Effect : Phase_Type;
    begin
@@ -86,9 +86,9 @@ package body Pulse_Sync is
       end loop;
    end Broadcast_Pulse;
 
-   -- ENHANCED: Process insights from flashing entities
+   -- CORRECTED: Process insights from flashing entities
    procedure Process_Insights(Network : in Sync_Network;
-                            Flashers : in Entity_Array;
+                            Flashers : in Local_Entity_Array;
                             Count : in Natural) is
    begin
       -- This is where domain-specific insight processing would occur
@@ -96,14 +96,16 @@ package body Pulse_Sync is
       null; -- Placeholder for Phase 4 enhancement
    end Process_Insights;
 
-   -- ENHANCED: Check for network consensus
+   -- CORRECTED: Check for network consensus
    function Check_Consensus (Network : Sync_Network) return Boolean is
       Near_Threshold_Count : Natural := 0;
-      Consensus_Threshold : constant Natural := (Network.Entity_Count * 60) / 100; -- 60%
+      Consensus_Threshold : Natural;
    begin
       if Network.Entity_Count = 0 then
          return False;
       end if;
+      
+      Consensus_Threshold := (Network.Entity_Count * 60) / 100; -- 60%
       
       -- Count entities near flash threshold (phase >= 85%)
       for I in 1 .. Network.Entity_Count loop
@@ -116,7 +118,7 @@ package body Pulse_Sync is
       return Near_Threshold_Count >= Consensus_Threshold;
    end Check_Consensus;
 
-   -- NEW: Calculate phase coherence using Kuramoto order parameter approximation
+   -- CORRECTED: Calculate phase coherence using Kuramoto order parameter approximation
    function Calculate_Phase_Coherence(Network : Sync_Network) return Natural is
       Total_Phase : Natural := 0;
       Min_Phase, Max_Phase : Phase_Type;
@@ -150,7 +152,7 @@ package body Pulse_Sync is
       end if;
    end Calculate_Phase_Coherence;
 
-   -- NEW: Reset all entity phases (for refractory periods)
+   -- CORRECTED: Reset all entity phases (for refractory periods)
    procedure Reset_Network_Phases(Network : in out Sync_Network) is
    begin
       for I in 1 .. Network.Entity_Count loop
@@ -160,7 +162,7 @@ package body Pulse_Sync is
       end loop;
    end Reset_Network_Phases;
 
-   -- NEW: Get count of active entities
+   -- CORRECTED: Get count of active entities
    function Get_Active_Entity_Count(Network : Sync_Network) return Natural is
       Count : Natural := 0;
    begin
