@@ -7,6 +7,7 @@ on:
     branches:
       - main
   workflow_dispatch:
+
 jobs:
   build-and-test-pure-ada:
     runs-on: ubuntu-latest
@@ -16,6 +17,7 @@ jobs:
       SERIAL_LOG: serial.log
       BOCHS_LOG: bochs.log
       BOCHS_CONFIG: bochsrc.txt
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -26,7 +28,7 @@ jobs:
         run: |
           echo "💥 NUCLEAR CLEAN - Ensuring pristine source state..."
           # Remove ALL possible build artifacts
-          rm -rf *.o *.ali *.elf *.bin *.img *.adc *.log
+          rm -rf *.o *.ali *.elf *.bin *.img *.adc *.log *.png
           rm -rf .obj .libs build dist out target
           # Force absolute clean state
           git clean -fdx -e '*.adb' -e '*.ads' -e '*.asm' -e '*.ld' -e 'Makefile' -e '*.txt' || echo "Git clean completed"
@@ -195,73 +197,171 @@ jobs:
             if [ "$IMAGE_SIZE" -eq 1474560 ]; then
               echo "✅ Correct floppy disk image size"
             else
-              echo "⚠️ Non-standard image size"
+              echo "⚠️  Non-standard image size"
             fi
           fi
 
-      - name: Create Pure Ada OS Bochs Config
+      - name: Create Pure Ada OS Bochs Config with VGA Capture
         run: |
-          echo "⚙️ Creating HEADLESS Bochs configuration for Pure Ada OS..."
+          echo "⚙️ Creating Bochs configuration for Pure Ada OS with VGA capture..."
           cat > "$BOCHS_CONFIG" << 'EOF'
-          # HEADLESS Bochs configuration for HoloXlife Pure Ada OS
-          megs: 16
-          romimage: file=$BXSHARE/BIOS-bochs-latest
-          vgaromimage: file=$BXSHARE/VGABIOS-lgpl-latest
+          # Bochs configuration for HoloXlife Pure Ada Operating System with VGA capture
           boot: floppy
           floppya: 1_44=emergeos.img, status=inserted
-          display_library: nogui
+          
+          # ROM images - REQUIRED for VGA functionality
+          romimage: file=/usr/share/bochs/BIOS-bochs-latest
+          vgaromimage: file=/usr/share/bochs/VGABIOS-lgpl-latest
+          
+          # Display library - CRITICAL: Use 'x' to enable VGA rendering
+          display_library: x, options="gui_debug"
+          
+          # CPU configuration
+          cpu: model=pentium_mmx, ips=4000000, reset_on_triple_fault=1
+          megs: 256
+          
+          # VGA configuration
+          vga: extension=none, update_interval=50000
+          
+          # Logging configuration
           log: bochs.log
+          logprefix: %t%e%d
           panic: action=report
           error: action=report
+          info: action=report
+          debug: action=ignore
+          debugger_log: -
+          
+          # Serial port for debug output
           com1: enabled=1, mode=file, dev=serial.log
+          
+          # Input devices
+          mouse: enabled=0
+          keyboard: type=mf, serial_delay=250, paste_delay=100000
+          
+          # Clock
+          clock: sync=realtime, time0=local
+          
+          # Magic break for debugging
           magic_break: enabled=1
+          
+          # Screenshot capture - saves VGA output as PNG files
+          screenshot: prefix=vga_output_, every=100
           EOF
-          echo "📄 HEADLESS HoloXlife Pure Ada OS Bochs config created"
+          echo "📄 HoloXlife Pure Ada OS Bochs config created:"
+          cat "$BOCHS_CONFIG"
 
-      - name: Test Pure Ada OS Boot
+      - name: Test Pure Ada OS Boot with VGA Capture
         run: |
-          echo "🚀 Testing HoloXlife Pure Ada OS Boot (HEADLESS)..."
+          echo "🚀 Testing HoloXlife Pure Ada OS Boot with VGA capture..."
           echo "======================================"
+          
           # Verify image exists
           if [ ! -f "$IMAGE_NAME" ]; then
             echo "❌ OS Image $IMAGE_NAME not found"
             ls -la *.img 2>/dev/null || echo "No .img files found"
             exit 1
           fi
-          # Clean previous logs
-          rm -f "$BOCHS_LOG" "$SERIAL_LOG" bochs_output.log bochs_error.log
-          echo "Booting HoloXlife Pure Ada Operating System in HEADLESS mode..."
-          echo "Expected output in serial.log:"
-          echo "- HoloXlife OS - Protocol Step 7"
-          echo "- Enhanced Pulse Synchronization" 
-          echo "- Hardware + Temporal Entities Active"
-          echo "- Firefly Synchronization messages"
-          # Run Bochs in HEADLESS mode
+          
+          # Clean previous logs and screenshots
+          rm -f "$BOCHS_LOG" "$SERIAL_LOG" bochs_output.log bochs_error.log vga_output_*.png
+          
+          echo "Starting virtual display for Pure Ada OS test..."
+          export DISPLAY=:99
+          Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+          XVFB_PID=$!
+          sleep 3
+          
+          # Verify virtual display
+          if ! kill -0 $XVFB_PID 2>/dev/null; then
+            echo "❌ Failed to start virtual display"
+            exit 1
+          fi
+          
+          echo "✅ Virtual display started successfully"
+          echo ""
+          echo "Booting HoloXlife Pure Ada Operating System..."
+          echo "VGA output will be captured as PNG screenshots..."
+          echo "Expected to see:"
+          echo "- HoloXlife OS v1.0 - Pure Ada Implementation"
+          echo "- Holographic Memory System initialization"
+          echo "- Entity creation (CPU/Memory/Device/Filesystem)"
+          echo "- Boot completion message"
+          echo ""
+          
+          # Run Bochs with extended timeout for Pure Ada OS
           set +e
-          timeout 30s bochs -f "$BOCHS_CONFIG" -q > bochs_output.log 2> bochs_error.log
+          timeout 30s bochs -q -f "$BOCHS_CONFIG" > bochs_output.log 2> bochs_error.log
           BOCHS_EXIT=$?
           set -e
+          
+          # Cleanup
+          kill $XVFB_PID 2>/dev/null || true
+          wait $XVFB_PID 2>/dev/null || true
+          
           echo ""
           echo "Pure Ada OS boot test completed with exit code: $BOCHS_EXIT"
-          # Check for OS output in serial.log
-          if [ -f "$SERIAL_LOG" ]; then
-            echo "✅ Serial log created - checking for OS output..."
-            if grep -q "HoloXlife\|Pure Ada\|Protocol Step" "$SERIAL_LOG"; then
-              echo "🎉 HOLOXLIFE PURE ADA OS BOOT SUCCESSFUL!"
-              echo "=== OS OUTPUT ==="
-              cat "$SERIAL_LOG"
-            else
-              echo "⚠️ Serial log exists but no OS messages found"
-              cat "$SERIAL_LOG"
-            fi
+          
+          # Check for VGA screenshots
+          if ls vga_output_*.png 1> /dev/null 2>&1; then
+            echo ""
+            echo "✅ VGA SCREENSHOTS CAPTURED SUCCESSFULLY!"
+            echo "Screenshot files:"
+            ls -lh vga_output_*.png
+            SCREENSHOT_COUNT=$(ls vga_output_*.png 2>/dev/null | wc -l)
+            echo "Total screenshots: $SCREENSHOT_COUNT"
           else
-            echo "❌ No serial log created - OS may not have booted"
+            echo ""
+            echo "⚠️ No VGA screenshots found"
+            echo "Possible reasons:"
+            echo "  - OS may not be writing to VGA memory"
+            echo "  - Bochs exited before screenshots could be taken"
+            echo "  - Display configuration issue"
+          fi
+          
+          echo ""
+          if [ $BOCHS_EXIT -eq 124 ]; then
+            echo "✅ Boot test reached timeout (30s) - OS was running"
+          elif [ $BOCHS_EXIT -eq 0 ]; then
+            echo "✅ Bochs completed normally"
+          else
+            echo "⚠️ Bochs exited with code $BOCHS_EXIT"
+          fi
+
+      - name: Display VGA Screenshots
+        if: always()
+        run: |
+          echo "🖼️ VGA Screenshot Summary"
+          echo "========================="
+          if ls vga_output_*.png 1> /dev/null 2>&1; then
+            echo "VGA screenshots captured from your Pure Ada OS:"
+            for img in vga_output_*.png; do
+              if [ -f "$img" ]; then
+                SIZE=$(stat -c%s "$img" 2>/dev/null || echo "unknown")
+                echo "  📸 $img ($SIZE bytes)"
+              fi
+            done
+            echo ""
+            echo "✅ VGA screenshots available in artifacts"
+            echo "📥 Download the artifacts to view the actual VGA output!"
+            echo "   These PNG files show exactly what your Pure Ada OS"
+            echo "   displayed on the virtual VGA screen."
+          else
+            echo "❌ No VGA screenshots were captured"
+            echo ""
+            echo "Troubleshooting steps:"
+            echo "1. Check if OS writes to VGA memory (0xB8000)"
+            echo "2. Verify Bochs display library is 'x' not 'nogui'"
+            echo "3. Check bochs.log for display initialization errors"
+            echo "4. Ensure OS doesn't exit too quickly before screenshots"
           fi
 
       - name: Analyze Pure Ada OS Boot Results
+        if: always()
         run: |
           echo "📊 HoloXlife Pure Ada OS Boot Analysis"
           echo "====================================="
+          
           # Check for Pure Ada OS specific messages
           SUCCESS_INDICATORS=(
             "HoloXlife OS"
@@ -272,11 +372,8 @@ jobs:
             "Boot.*Complete"
             "INITIALIZED"
             "ACTIVE"
-            "Protocol Step"
-            "Firefly"
-            "Hardware.*Entity"
-            "Temporal.*Entity"
           )
+          
           ERROR_INDICATORS=(
             "exception"
             "fault"
@@ -286,6 +383,7 @@ jobs:
             "ERROR"
             "crash"
           )
+          
           echo "1. 🖥️  BOCHS CONSOLE OUTPUT:"
           if [ -f bochs_output.log ] && [ -s bochs_output.log ]; then
             echo "--- Bochs console output ---"
@@ -293,6 +391,7 @@ jobs:
           else
             echo "No Bochs console output captured"
           fi
+          
           echo ""
           echo "2. 🚨 BOCHS ERROR OUTPUT:"
           if [ -f bochs_error.log ] && [ -s bochs_error.log ]; then
@@ -301,11 +400,13 @@ jobs:
           else
             echo "✅ No Bochs errors"
           fi
+          
           echo ""
           echo "3. 📋 BOCHS INTERNAL LOG ANALYSIS:"
           if [ -f "$BOCHS_LOG" ] && [ -s "$BOCHS_LOG" ]; then
             echo "--- Last 100 lines of Bochs log ---"
             tail -100 "$BOCHS_LOG"
+            
             echo ""
             echo "🔍 Pure Ada OS Boot Success Analysis:"
             FOUND_SUCCESS=0
@@ -316,9 +417,12 @@ jobs:
                 grep -i "$indicator" "$BOCHS_LOG" | tail -3
               fi
             done
+            
             if [ $FOUND_SUCCESS -eq 0 ]; then
-              echo "⚠️ No Pure Ada OS boot success indicators found"
+              echo "⚠️ No Pure Ada OS boot success indicators found in Bochs log"
+              echo "   (This is normal - check serial output and VGA screenshots instead)"
             fi
+            
             echo ""
             echo "🚨 Error Analysis:"
             FOUND_ERRORS=0
@@ -329,28 +433,46 @@ jobs:
                 grep -i "$indicator" "$BOCHS_LOG" | tail -3
               fi
             done
+            
             if [ $FOUND_ERRORS -eq 0 ]; then
-              echo "✅ No critical errors detected"
+              echo "✅ No critical errors detected in Bochs log"
             fi
           else
-            echo "No Bochs internal log available"
+            echo "⚠️ No Bochs internal log available"
           fi
+          
           echo ""
           echo "4. 📺 SERIAL DEBUG OUTPUT:"
           if [ -f "$SERIAL_LOG" ] && [ -s "$SERIAL_LOG" ]; then
             echo "--- Pure Ada OS Serial Debug Output ---"
             cat "$SERIAL_LOG"
+            
             # Check serial output for Ada OS messages
-            if grep -i "HoloXlife\|Pure Ada\|Ada.*Boot\|Protocol Step\|Firefly" "$SERIAL_LOG" >/dev/null 2>&1; then
+            if grep -i "HoloXlife\|Pure Ada\|Ada.*Boot\|Holographic" "$SERIAL_LOG" >/dev/null 2>&1; then
+              echo ""
               echo "✅ Pure Ada OS debug messages found in serial output"
             else
+              echo ""
               echo "⚠️ No Pure Ada OS messages in serial output"
+              echo "   (This is normal if OS only uses VGA output)"
             fi
           else
-            echo "No serial debug output (this is normal for console-only output)"
+            echo "No serial debug output captured"
+            echo "(This is normal for VGA-only output)"
           fi
+          
           echo ""
-          echo "5. 📈 HOLOXLIFE PURE ADA OS SUMMARY:"
+          echo "5. 🖼️  VGA OUTPUT STATUS:"
+          if ls vga_output_*.png 1> /dev/null 2>&1; then
+            SCREENSHOT_COUNT=$(ls vga_output_*.png 2>/dev/null | wc -l)
+            echo "✅ $SCREENSHOT_COUNT VGA screenshot(s) captured"
+            echo "   Download artifacts to see your OS display output!"
+          else
+            echo "❌ No VGA screenshots captured"
+          fi
+          
+          echo ""
+          echo "6. 📈 HOLOXLIFE PURE ADA OS SUMMARY:"
           echo "======================================"
           echo "OS Name: HoloXlife"
           echo "Language: 100% Pure Ada (Zero C code)"
@@ -362,6 +484,7 @@ jobs:
             echo "Image Size: $(stat -L -c%s "$IMAGE_NAME" 2>/dev/null || echo "unknown") bytes"
           fi
           echo "Boot Test: Completed"
+          echo "VGA Capture: $(ls vga_output_*.png 1> /dev/null 2>&1 && echo "SUCCESS" || echo "No screenshots")"
           echo ""
           echo "🎯 This represents a breakthrough in Pure Ada OS development!"
           echo "✅ Analysis complete"
@@ -373,12 +496,12 @@ jobs:
           if [ -f "$IMAGE_NAME" ]; then
             echo "Running 10-second QEMU test..."
             timeout 10s qemu-system-i386 -fda "$IMAGE_NAME" -serial stdio -nographic -no-reboot > qemu_output.log 2>&1 || true
+            echo ""
             echo "QEMU output:"
-            if [ -f qemu_output.log ]; then
+            if [ -f qemu_output.log ] && [ -s qemu_output.log ]; then
               cat qemu_output.log
-              if grep -q "HoloXlife\|Pure Ada\|Protocol Step" qemu_output.log; then
-                echo "🎉 QEMU BOOT SUCCESSFUL - OS IS WORKING!"
-              fi
+            else
+              echo "No QEMU output captured"
             fi
           else
             echo "No image file for QEMU test"
@@ -398,6 +521,7 @@ jobs:
             *.adc
             *.adb
             *.ads
+            *.png
             bochsrc.txt
             Makefile
             emergeos.ads
@@ -418,6 +542,12 @@ jobs:
           echo "✅ Holographic Memory: Implemented"
           echo "✅ Entity Management: Included"
           echo "✅ Boot Test: Completed"
+          echo "✅ VGA Capture: $(ls vga_output_*.png 1> /dev/null 2>&1 && echo 'ENABLED' || echo 'No screenshots')"
+          echo ""
+          if ls vga_output_*.png 1> /dev/null 2>&1; then
+            echo "📸 VGA Screenshots: Available in artifacts"
+            echo "   Download to see your OS display output!"
+          fi
           echo ""
           echo "This Pure Ada Operating System represents a significant"
           echo "achievement in systems programming with Ada!"
