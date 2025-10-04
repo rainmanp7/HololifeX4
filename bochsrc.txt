@@ -1,9 +1,12 @@
-# Minimal Bochs config for GitHub Actions
+# HEADLESS Bochs configuration for HoloXlife Pure Ada OS
 megs: 16
 romimage: file=$BXSHARE/BIOS-bochs-latest
 vgaromimage: file=$BXSHARE/VGABIOS-lgpl-latest
 boot: floppy
-floppy: 1_44=emergeos.img, status=inserted
+floppya: 1_44=emergeos.img, status=inserted
 display_library: nogui
 log: bochs.log
 panic: action=report
+error: action=report
+com1: enabled=1, mode=file, dev=serial.log
+magic_break: enabled=1
