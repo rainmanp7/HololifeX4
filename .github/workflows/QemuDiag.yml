@@ -57,16 +57,8 @@ jobs:
       - name: Verify Source Integrity
         run: >
           echo "🔍 Verifying source files..."
-          REQUIRED_FILES=(
-            "boot.asm"
-            "linker.ld"
-            "emergeos.ads"
-            "emergeos.adb"
-            "system.ads"
-            "boot.adb"
-            "Makefile"
-          )
-          for file in "${REQUIRED_FILES[@]}"; do
+          REQUIRED_FILES="boot.asm linker.ld emergeos.ads emergeos.adb system.ads boot.adb Makefile"
+          for file in $REQUIRED_FILES; do
             if [ ! -f "$file" ]; then
               echo "❌ Missing: $file"
               exit 1
