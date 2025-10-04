@@ -1,0 +1,39 @@
+jobs:
+  test-os:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Bochs
+        run: sudo apt-get update && sudo apt-get install -y bochs
+
+      - name: Build OS image (emergeos.img)
+        run: make  # or however you build your .img
+
+      - name: Create Bochs config
+        run: |
+          cat > bochsrc.txt <<'EOF'
+boot: floppy
+floppya: 1_44=emergeos.img, status=inserted
+romimage: file=/usr/share/bochs/BIOS-bochs-latest
+vgaromimage: file=/usr/share/bochs/VGABIOS-lgpl-latest
+display_library: sdl2
+cpu: count=1, ips=4000000
+megs: 32
+log: bochs.log
+panic: action=report
+error: action=report
+com1: enabled=1, mode=file, dev=serial.log
+mouse: enabled=0
+keyboard: type=mf
+clock: sync=realtime
+magic_break: enabled=1
+EOF
+
+      - name: Run Bochs (non-interactive)
+        run: timeout 30s bochs -q -f bochsrc.txt || true
+
+      - name: Check logs
+        run: |
+          cat bochs.log || echo "No bochs.log"
+          cat serial.log || echo "No serial.log"
