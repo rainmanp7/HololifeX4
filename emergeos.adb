@@ -269,12 +269,11 @@ package body EmergeOS is
    end Evolve_Specialized_Entities;
 
    procedure Process_Entity_Flashes is
-      Flashing_Entities : Pulse_Sync.Entity_Array(1..Pulse_Network.Entity_Count);
+      -- CORRECTED: Use Local_Entity_Array from Pulse_Sync
+      Flashing_Entities : Pulse_Sync.Local_Entity_Array;
       Flash_Count : Natural;
-      Insights : Pulse_Sync.Insight_Array(1..Pulse_Network.Entity_Count);
-      Insight_Count : Natural;
    begin
-      -- Get currently flashing entities using ENHANCED API
+      -- Get currently flashing entities using CORRECTED API
       Pulse_Sync.Get_Flashing_Entities(Pulse_Network, Flashing_Entities, Flash_Count);
       
       -- Process flashes if any detected
@@ -286,29 +285,32 @@ package body EmergeOS is
          
          -- Display domain-specific insights for each flasher
          for I in 1 .. Flash_Count loop
-            case Flashing_Entities(I).ID is
-               when ENTITY_HARDWARE =>
-                  Console_Put_String("  🔧 HARDWARE: Memory_Valid=");
-                  Console_Put_Char(Boolean'Pos(Hardware_Anchor.Memory_Validated) + Character'Pos('0'));
-                  Console_Put_String(" Devices=");
-                  Put_Natural(Hardware_Anchor.Devices_Detected);
-                  Console_Put_String(" Coherence=");
-                  Put_Natural(Hardware_Anchor.Resource_Coherence);
-                  Console_Put_String("%");
-                  
-               when ENTITY_TEMPORAL =>
-                  Console_Put_String("  ⏰ TEMPORAL: Timing=");
-                  Put_Natural(Temporal_Entity.Calculate_System_Timing);
-                  Console_Put_String(" Patterns=");
-                  Put_Natural(Temporal_Entity.Analyze_Lifecycle_Patterns);
-                  Console_Put_String(" Optimizations=");
-                  Put_Natural(Temporal_Entity.Generate_Timing_Optimization);
-                  
-               when others =>
-                  Console_Put_String("  🌟 UNKNOWN: ID=");
-                  Put_Natural(Natural(Flashing_Entities(I).ID));
-            end case;
-            Console_New_Line;
+            -- CORRECTED: Ensure array bounds safety
+            if I <= Flashing_Entities'Last then
+               case Flashing_Entities(I).ID is
+                  when ENTITY_HARDWARE =>
+                     Console_Put_String("  🔧 HARDWARE: Memory_Valid=");
+                     Console_Put_Char(Boolean'Pos(Hardware_Anchor.Memory_Validated) + Character'Pos('0'));
+                     Console_Put_String(" Devices=");
+                     Put_Natural(Hardware_Anchor.Devices_Detected);
+                     Console_Put_String(" Coherence=");
+                     Put_Natural(Hardware_Anchor.Resource_Coherence);
+                     Console_Put_String("%");
+                     
+                  when ENTITY_TEMPORAL =>
+                     Console_Put_String("  ⏰ TEMPORAL: Timing=");
+                     Put_Natural(Temporal_Entity.Calculate_System_Timing);
+                     Console_Put_String(" Patterns=");
+                     Put_Natural(Temporal_Entity.Analyze_Lifecycle_Patterns);
+                     Console_Put_String(" Optimizations=");
+                     Put_Natural(Temporal_Entity.Generate_Timing_Optimization);
+                     
+                  when others =>
+                     Console_Put_String("  🌟 UNKNOWN: ID=");
+                     Put_Natural(Natural(Flashing_Entities(I).ID));
+               end case;
+               Console_New_Line;
+            end if;
          end loop;
          
          -- BROADCAST PULSE to network (firefly coupling)
@@ -321,21 +323,21 @@ package body EmergeOS is
          
          -- Reset flashed entities (refractory period)
          for I in 1 .. Flash_Count loop
-            case Flashing_Entities(I).ID is
-               when ENTITY_HARDWARE =>
-                  Hardware_Anchor.Base.Phase := 0;
-                  Hardware_Anchor.Base.Flash_Count := Hardware_Anchor.Base.Flash_Count + 1;
-               when ENTITY_TEMPORAL =>
-                  Temporal_Anchor.Base.Phase := 0;
-                  Temporal_Anchor.Base.Flash_Count := Temporal_Anchor.Base.Flash_Count + 1;
-               when others =>
-                  null;
-            end case;
+            if I <= Flashing_Entities'Last then
+               case Flashing_Entities(I).ID is
+                  when ENTITY_HARDWARE =>
+                     Hardware_Anchor.Base.Phase := 0;
+                     Hardware_Anchor.Base.Flash_Count := Hardware_Anchor.Base.Flash_Count + 1;
+                     Pulse_Network.Entities(1) := Hardware_Anchor.Base;
+                  when ENTITY_TEMPORAL =>
+                     Temporal_Anchor.Base.Phase := 0;
+                     Temporal_Anchor.Base.Flash_Count := Temporal_Anchor.Base.Flash_Count + 1;
+                     Pulse_Network.Entities(2) := Temporal_Anchor.Base;
+                  when others =>
+                     null;
+               end case;
+            end if;
          end loop;
-         
-         -- Update network state
-         Pulse_Network.Entities(1) := Hardware_Anchor.Base;
-         Pulse_Network.Entities(2) := Temporal_Anchor.Base;
       end if;
    end Process_Entity_Flashes;
 
@@ -361,6 +363,8 @@ package body EmergeOS is
             Pulse_Sync.Reset_Network_Phases(Pulse_Network);
             Hardware_Anchor.Base.Phase := 200;  -- Partial reset
             Temporal_Anchor.Base.Phase := 100;  -- Staggered restart
+            Pulse_Network.Entities(1) := Hardware_Anchor.Base;
+            Pulse_Network.Entities(2) := Temporal_Anchor.Base;
          end if;
       end if;
    end Check_Network_Consensus;
