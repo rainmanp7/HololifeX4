@@ -1,0 +1,17 @@
+boot: floppy
+floppya: 1_44=emergeos.img, status=inserted
+romimage: file=/usr/share/bochs/BIOS-bochs-latest
+vgaromimage: file=/usr/share/bochs/VGABIOS-lgpl-latest
+display_library: sdl2, options="fullscreen=0"
+cpu: count=1, ips=4000000, reset_on_triple_fault=1
+megs: 32
+log: bochs.log
+panic: action=report
+error: action=report
+info: action=report
+debug: action=ignore
+com1: enabled=1, mode=file, dev=serial.log
+mouse: enabled=0
+keyboard: type=mf
+clock: sync=realtime, time0=local
+magic_break: enabled=1
