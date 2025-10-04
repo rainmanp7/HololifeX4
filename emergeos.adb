@@ -167,7 +167,7 @@ package body EmergeOS is
    Cycle_Count : Natural := 0;
    Total_Flashes : Natural := 0;
 
-   -- Real Hardware Entity instance (kept locally for method calls)
+   -- Real Hardware Entity instance
    HW_Entity : Hardware_Anchor :=
      (Base => (ID => ENTITY_HARDWARE,
                Phase => 950,
@@ -181,8 +181,7 @@ package body EmergeOS is
       Last_Validation_Cycle => 0);
 
    procedure Initialize_Protocol_Pulse_Network is
-      -- Create a copy for the network (only base fields matter for sync)
-      Network_Copy : Pulse_Types.Entity_Record := HW_Entity.Base;
+      Network_Copy : constant Pulse_Types.Entity_Record := HW_Entity.Base;
    begin
       Pulse_Sync.Initialize_Network(Pulse_Network);
       Pulse_Sync.Add_Entity(Pulse_Network, Network_Copy);
@@ -201,13 +200,13 @@ package body EmergeOS is
    procedure Run_Protocol_Pulse_Cycle is
       Network_Copy : Pulse_Types.Entity_Record;
    begin
-      -- Manually evolve the real hardware entity
-      HW_Entity.Base.Phase := HW_Entity.Base.Phase + HW_Entity.Base.Frequency;
+      -- Manually evolve phase with explicit type conversion
+      HW_Entity.Base.Phase := Phase_Type(Natural(HW_Entity.Base.Phase) + Natural(HW_Entity.Base.Frequency));
 
       -- Check for flash
       if HW_Entity.Base.Phase >= 1000 then
          -- Generate truthful insight
-         Assume_Default_Devices(HW_Entity);
+         Assume_Default_Devices(HW_Entity);  -- Correct call
          HW_Entity.Base.Flash_Count := HW_Entity.Base.Flash_Count + 1;
          Total_Flashes := Total_Flashes + 1;
          HW_Entity.Base.Phase := 0;  -- Reset
@@ -218,10 +217,10 @@ package body EmergeOS is
          Console_New_Line;
       end if;
 
-      -- Update network copy for coherence calculation
+      -- Update network copy and calculate coherence
       Network_Copy := HW_Entity.Base;
       Pulse_Network.Entities(1) := Network_Copy;
-      Pulse_Sync.Calculate_Coherence(Pulse_Network);
+      Pulse_Network.Coherence_Level := Calculate_Coherence(Pulse_Network);  -- Use return value
 
       Cycle_Count := Cycle_Count + 1;
    end Run_Protocol_Pulse_Cycle;
