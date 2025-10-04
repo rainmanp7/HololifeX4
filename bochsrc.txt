@@ -1,4 +1,6 @@
 # Bochs configuration for HoloXlife Pure Ada Operating System
+
+# Boot from floppy
 boot: floppy
 floppya: 1_44=emergeos.img, status=inserted
 
@@ -6,14 +8,14 @@ floppya: 1_44=emergeos.img, status=inserted
 romimage: file=/usr/share/bochs/BIOS-bochs-latest
 vgaromimage: file=/usr/share/bochs/VGABIOS-lgpl-latest
 
-# Display library - Use SDL2 for better compatibility
-display_library: sdl2, options="fullscreen=0"
-
-# CPU configuration
+# CPU and memory
 cpu: count=1, ips=4000000, reset_on_triple_fault=1
 megs: 32
 
-# Logging configuration
+# Display (must come after ROM and CPU settings)
+display_library: sdl2, options="fullscreen=0"
+
+# Logging
 log: bochs.log
 logprefix: %t%e%d
 panic: action=report
@@ -29,8 +31,8 @@ com1: enabled=1, mode=file, dev=serial.log
 mouse: enabled=0
 keyboard: type=mf, serial_delay=250, paste_delay=100000
 
-# Clock
+# System clock
 clock: sync=realtime, time0=local
 
-# Magic break for debugging
+# Magic breakpoint support (for debugging)
 magic_break: enabled=1
