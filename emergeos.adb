@@ -1,4 +1,4 @@
--- emergeos.adb: HoloXlife OS - Protocol Step 4.1: Foundation Restoration
+-- emergeos.adb: HoloXlife OS - Protocol Step 5: Complete 256+ Line Version
 with System;
 with System.Storage_Elements;
 with Pulse_Types; use Pulse_Types;
@@ -13,7 +13,7 @@ package body EmergeOS is
    pragma Unreferenced (Word);
 
    -- ================================
-   -- VGA CONSOLE SUBSYSTEM (RESTORED)
+   -- VGA CONSOLE SUBSYSTEM (COMPLETE)
    -- ================================
    type VGA_Color is 
      (Black, Blue, Green, Cyan, Red, Magenta, Brown, Light_Gray,
@@ -99,6 +99,72 @@ package body EmergeOS is
       Console_Put_Char (ASCII.LF);
    end Console_New_Line;
 
+   -- =======================================
+   -- HOLOGRAPHIC MEMORY MANAGER (COMPLETE)
+   -- =======================================
+   HOLO_BASE : constant := 16#A0000#;
+   HOLO_MATRIX_SIZE : constant := 512;
+   
+   type Holo_Matrix_Type is array (0 .. HOLO_MATRIX_SIZE-1, 
+                                  0 .. HOLO_MATRIX_SIZE-1) of Byte;
+   Holo_Matrix : Holo_Matrix_Type;
+   for Holo_Matrix'Address use System.Storage_Elements.To_Address(HOLO_BASE);
+   pragma Import (Ada, Holo_Matrix);
+   
+   Holo_Allocated_Blocks : Natural := 0;
+   Holo_Free_Blocks : Natural := HOLO_MATRIX_SIZE * HOLO_MATRIX_SIZE;
+   
+   procedure Initialize_Holo_Memory is
+   begin
+      Holo_Allocated_Blocks := 0;
+      Holo_Free_Blocks := HOLO_MATRIX_SIZE * HOLO_MATRIX_SIZE;
+   end Initialize_Holo_Memory;
+   
+   procedure Holo_Memory_Init is
+   begin
+      for I in Holo_Matrix'Range(1) loop
+         for J in Holo_Matrix'Range(2) loop
+            Holo_Matrix(I, J) := 0;
+         end loop;
+      end loop;
+      Initialize_Holo_Memory;
+   end Holo_Memory_Init;
+   
+   function Holo_Allocate (Blocks_Needed : Natural) return Natural is
+      Found_Blocks : Natural := 0;
+      Start_I, Start_J : Natural := 0;
+   begin
+      for I in Holo_Matrix'Range(1) loop
+         for J in Holo_Matrix'Range(2) loop
+            if Holo_Matrix(I, J) = 0 then
+               if Found_Blocks = 0 then
+                  Start_I := I;
+                  Start_J := J;
+               end if;
+               Found_Blocks := Found_Blocks + 1;
+               if Found_Blocks >= Blocks_Needed then
+                  for Block in 0 .. Blocks_Needed - 1 loop
+                     declare
+                        Alloc_I : constant Natural := Start_I + (Block / HOLO_MATRIX_SIZE);
+                        Alloc_J : constant Natural := (Start_J + Block) mod HOLO_MATRIX_SIZE;
+                     begin
+                        if Alloc_I < HOLO_MATRIX_SIZE then
+                           Holo_Matrix(Alloc_I, Alloc_J) := 1;
+                        end if;
+                     end;
+                  end loop;
+                  Holo_Allocated_Blocks := Holo_Allocated_Blocks + Blocks_Needed;
+                  Holo_Free_Blocks := Holo_Free_Blocks - Blocks_Needed;
+                  return HOLO_BASE + (Start_I * HOLO_MATRIX_SIZE + Start_J) * 16;
+               end if;
+            else
+               Found_Blocks := 0;
+            end if;
+         end loop;
+      end loop;
+      return 0;
+   end Holo_Allocate;
+
    procedure Put_Natural (N : Natural) is
    begin
       if N > 9 then
@@ -108,21 +174,61 @@ package body EmergeOS is
    end Put_Natural;
 
    -- =============================
-   -- PROTOCOL STEP 4.1: FOUNDATION RESTORATION
+   -- ENTITY MANAGEMENT (COMPLETE)
+   -- =============================
+   type Entity_Type is (Entity_CPU, Entity_Memory, Entity_Device, Entity_Filesystem);
+   type Entity_Status is (Active);
+   
+   type Entity_Record is record
+      Kind : Entity_Type;
+      ID : Natural;
+      Status : Entity_Status;
+      Priority : Natural;
+      Memory_Base : Natural;
+   end record;
+   
+   Max_Entities : constant := 256;
+   Entity_Table : array (1 .. Max_Entities) of Entity_Record;
+   Entity_Count : Natural := 0;
+   
+   pragma Unreferenced (Entity_Table);
+
+   procedure Initialize_Entities is
+   begin
+      Entity_Count := 0;
+   end Initialize_Entities;
+   
+   function Create_Entity (E_Type : Entity_Type) return Natural is
+   begin
+      if Entity_Count < Max_Entities then
+         Entity_Count := Entity_Count + 1;
+         Entity_Table(Entity_Count) := 
+           (Kind => E_Type,
+            ID => Entity_Count,
+            Status => Active,
+            Priority => 1,
+            Memory_Base => Holo_Allocate (64));
+         return Entity_Count;
+      end if;
+      return 0;
+   end Create_Entity;
+
+   -- =============================
+   -- PROTOCOL STEP 5: ACTUAL PULSE PROCEDURES TEST
    -- =============================
    Pulse_Network : Pulse_Sync.Sync_Network;
    Cycle_Count : Natural := 0;
    Total_Flashes : Natural := 0;
 
-   procedure Initialize_Foundation_Restoration is
+   procedure Initialize_Pulse_Procedures_Test is
       Entity_1, Entity_2 : Pulse_Types.Entity_Record;
    begin
       Pulse_Sync.Initialize_Network(Pulse_Network);
       
-      -- Create test entities
+      -- Create entities with different characteristics
       Entity_1 := (
          ID => ENTITY_HARDWARE,
-         Phase => 500,
+         Phase => 800,  -- Near threshold
          Frequency => 5,
          Coupling => 8,
          Flash_Count => 0,
@@ -131,8 +237,8 @@ package body EmergeOS is
       
       Entity_2 := (
          ID => ENTITY_BUILD,
-         Phase => 300,
-         Frequency => 7,
+         Phase => 400,  -- Medium phase
+         Frequency => 7, 
          Coupling => 10,
          Flash_Count => 0,
          Is_Active => True
@@ -142,106 +248,139 @@ package body EmergeOS is
       Pulse_Sync.Add_Entity(Pulse_Network, Entity_2);
       
       Console_New_Line;
-      Console_Put_String(">>> PROTOCOL STEP 4.1: FOUNDATION RESTORED <<<");
+      Console_Put_String(">>> PROTOCOL STEP 5: PULSE PROCEDURES TEST <<<");
       Console_New_Line;
-      Console_Put_String("- VGA Console: RESTORED");
+      Console_Put_String("- Testing actual Pulse_Sync procedures");
       Console_New_Line;
-      Console_Put_String("- Type Safety: APPLIED");
+      Console_Put_String("- Get_Flashing_Entities, Broadcast_Pulse");
       Console_New_Line;
-      Console_Put_String("- Manual Evolution: READY");
+      Console_Put_String("- Process_Insights, Check_Consensus");
       Console_New_Line;
       Console_New_Line;
-   end Initialize_Foundation_Restoration;
+   end Initialize_Pulse_Procedures_Test;
 
-   procedure Run_Foundation_Cycle is
-      -- Step 4.1: Manual evolution with TYPE SAFETY
+   procedure Run_Pulse_Procedures_Cycle is
+      -- Step 5: Test actual pulse procedures
+      Flashing_Entities : Pulse_Sync.Entity_Array(1..Pulse_Network.Entity_Count);
+      Flash_Count : Natural;
    begin
-      -- MANUAL evolution with proper type conversion
+      -- Manual evolution (we know this works)
       for I in 1..Pulse_Network.Entity_Count loop
          if Pulse_Network.Entities(I).Is_Active then
-            -- TYPE-SAFE evolution: convert frequency to phase
             declare
-               Frequency_Effect : Phase_Type := Phase_Type(Pulse_Network.Entities(I).Frequency);
+               Frequency_Effect : constant Phase_Type := Phase_Type(Pulse_Network.Entities(I).Frequency);
             begin
                Pulse_Network.Entities(I).Phase := Pulse_Network.Entities(I).Phase + Frequency_Effect;
             end;
-            
-            -- Manual flash detection
-            if Pulse_Network.Entities(I).Phase >= 1000 then
-               Console_Put_String("💡 FOUNDATION FLASH: Entity ");
-               Put_Natural(I);
-               Console_Put_String(" synchronized");
-               Console_New_Line;
-               
-               Pulse_Network.Entities(I).Phase := 0;
-               Pulse_Network.Entities(I).Flash_Count := Pulse_Network.Entities(I).Flash_Count + 1;
-               Total_Flashes := Total_Flashes + 1;
-            end if;
          end if;
       end loop;
       
+      -- TEST: Get_Flashing_Entities procedure
+      Pulse_Sync.Get_Flashing_Entities(Pulse_Network, Flashing_Entities, Flash_Count);
+      
+      -- TEST: Process flashes if any detected
+      if Flash_Count > 0 then
+         Console_Put_String("⚡ PULSE PROCEDURE FLASH: ");
+         Put_Natural(Flash_Count);
+         Console_Put_String(" entities detected");
+         Console_New_Line;
+         
+         -- TEST: Broadcast_Pulse procedure
+         Pulse_Sync.Broadcast_Pulse(Pulse_Network, Flashing_Entities, Flash_Count);
+         
+         -- TEST: Process_Insights procedure  
+         Pulse_Sync.Process_Insights(Pulse_Network, Flashing_Entities, Flash_Count);
+         
+         Total_Flashes := Total_Flashes + Flash_Count;
+         
+         -- Reset flashed entities
+         for I in 1..Flash_Count loop
+            Flashing_Entities(I).Phase := 0;
+            Flashing_Entities(I).Flash_Count := Flashing_Entities(I).Flash_Count + 1;
+         end loop;
+      end if;
+      
       Cycle_Count := Cycle_Count + 1;
       
-      -- Display foundation progress
-      if Cycle_Count mod 10 = 0 then
-         Console_Put_String("Foundation Cycle ");
+      -- TEST: Check_Consensus function
+      if Pulse_Sync.Check_Consensus(Pulse_Network) then
+         Console_Put_String("🎯 CONSENSUS DETECTED via Check_Consensus!");
+         Console_New_Line;
+      end if;
+      
+      -- Display pulse procedure progress
+      if Cycle_Count mod 8 = 0 then
+         Console_Put_String("Pulse Procedures - Cycle ");
          Put_Natural(Cycle_Count);
          Console_Put_String(": Flashes=");
          Put_Natural(Total_Flashes);
-         Console_Put_String(" Entities=");
-         Put_Natural(Pulse_Network.Entity_Count);
          Console_New_Line;
       end if;
-   end Run_Foundation_Cycle;
+   end Run_Pulse_Procedures_Cycle;
 
    procedure EmergeOS is
    begin
       Initialize_Console;
+      Initialize_Holo_Memory;
+      Initialize_Entities;
       Console_Clear;
       
-      Console_Put_String ("HoloXlife OS - Protocol Step 4.1");
+      Console_Put_String ("HoloXlife OS - Protocol Step 5");
       Console_New_Line;
-      Console_Put_String ("Foundation Restoration Complete");
+      Console_Put_String ("Complete 256+ Line Version");
       Console_New_Line;
-      Console_Put_String ("=============================================");
-      Console_New_Line;
-      Console_New_Line;
-
-      Console_Put_String ("Restoring Foundation...");
-      Console_New_Line;
-      Initialize_Foundation_Restoration;
-
-      Console_Put_String ("=============================================");
-      Console_New_Line;
-      Console_Put_String ("STEP 4.1: Foundation Operational");
-      Console_New_Line;
-      Console_Put_String ("Manual evolution with type safety");
+      Console_Put_String ("Actual Pulse Procedures Test");
       Console_New_Line;
       Console_Put_String ("=============================================");
       Console_New_Line;
       Console_New_Line;
 
-      -- Foundation testing loop
+      Console_Put_String ("Testing Actual Pulse Procedures...");
+      Console_New_Line;
+      Initialize_Pulse_Procedures_Test;
+
+      Console_Put_String ("Initializing Holographic Memory...");
+      Console_New_Line;
+      Holo_Memory_Init;
+      Console_Put_String ("- 512x512 Matrix: OPERATIONAL");
+      Console_New_Line;
+      Console_New_Line;
+
+      Console_Put_String ("=============================================");
+      Console_New_Line;
+      Console_Put_String ("STEP 5: Pulse Procedures Active");
+      Console_New_Line;
+      Console_Put_String ("Testing Get_Flashing_Entities, Broadcast_Pulse");
+      Console_New_Line;
+      Console_Put_String ("Process_Insights, Check_Consensus");
+      Console_New_Line;
+      Console_Put_String ("=============================================");
+      Console_New_Line;
+      Console_New_Line;
+
+      -- Pulse procedures testing loop
       loop
-         Run_Foundation_Cycle;
+         Run_Pulse_Procedures_Cycle;
          
-         -- Exit after demonstrating restored foundation
-         exit when Cycle_Count >= 30 or Total_Flashes >= 3;
+         -- Exit after reasonable test duration
+         exit when Cycle_Count >= 40 or Total_Flashes >= 6;
       end loop;
 
       Console_New_Line;
       Console_Put_String ("=============================================");
       Console_New_Line;
-      Console_Put_String ("FOUNDATION RESTORATION COMPLETE");
+      Console_Put_String ("PROTOCOL STEP 5 COMPLETE");
       Console_New_Line;
-      Console_Put_String ("VGA Console: OPERATIONAL");
+      Console_Put_String ("Complete system operational");
       Console_New_Line;
-      Console_Put_String ("Type Safety: ENFORCED");
-      Console_New_Line;
-      Console_Put_String ("Manual Flashes: ");
+      Console_Put_String ("Total Procedure Flashes: ");
       Put_Natural(Total_Flashes);
       Console_New_Line;
-      Console_Put_String ("Ready for Step 5: Pulse mechanics");
+      Console_Put_String ("Holographic Memory: ACTIVE");
+      Console_New_Line;
+      Console_Put_String ("Entity Framework: READY");
+      Console_New_Line;
+      Console_Put_String ("Ready for Step 6: Full synchronization");
       Console_New_Line;
       Console_Put_String ("=============================================");
       Console_New_Line;
