@@ -1,8 +1,11 @@
--- emergeos.adb: HoloXlife OS - Protocol Step 5: Complete 256+ Line Version
+-- emergeos.adb: HoloXlife OS - Protocol Step 7: Enhanced Pulse Synchronization
+-- Complete integration with Hardware + Temporal entities and firefly coupling
 with System;
 with System.Storage_Elements;
 with Pulse_Types; use Pulse_Types;
 with Pulse_Sync; use Pulse_Sync;
+with Hardware_Entity; use Hardware_Entity;
+with Temporal_Entity; use Temporal_Entity;
 
 package body EmergeOS is
 
@@ -214,109 +217,202 @@ package body EmergeOS is
    end Create_Entity;
 
    -- =============================
-   -- PROTOCOL STEP 5: ACTUAL PULSE PROCEDURES TEST
+   -- PHASE 3: ENHANCED PULSE NETWORK
    -- =============================
    Pulse_Network : Pulse_Sync.Sync_Network;
+   Hardware_Anchor : Hardware_Entity.Hardware_Anchor;
+   Temporal_Anchor : Temporal_Entity.Temporal_Anchor;
+   
    Cycle_Count : Natural := 0;
    Total_Flashes : Natural := 0;
+   Network_Coherence : Natural := 0;
+   Last_Consensus_Cycle : Natural := 0;
 
-   procedure Initialize_Pulse_Procedures_Test is
-      Entity_1, Entity_2 : Pulse_Types.Entity_Record;
+   procedure Initialize_Enhanced_Pulse_Network is
    begin
       Pulse_Sync.Initialize_Network(Pulse_Network);
       
-      -- Create entities with different characteristics
-      Entity_1 := (
-         ID => ENTITY_HARDWARE,
-         Phase => 800,  -- Near threshold
-         Frequency => 5,
-         Coupling => 8,
-         Flash_Count => 0,
-         Is_Active => True
-      );
+      -- Initialize specialized entities
+      Hardware_Entity.Initialize(Hardware_Anchor);
+      Temporal_Entity.Initialize(Temporal_Anchor);
       
-      Entity_2 := (
-         ID => ENTITY_BUILD,
-         Phase => 400,  -- Medium phase
-         Frequency => 7, 
-         Coupling => 10,
-         Flash_Count => 0,
-         Is_Active => True
-      );
-      
-      Pulse_Sync.Add_Entity(Pulse_Network, Entity_1);
-      Pulse_Sync.Add_Entity(Pulse_Network, Entity_2);
+      -- Add to pulse network
+      Pulse_Sync.Add_Entity(Pulse_Network, Hardware_Anchor.Base);
+      Pulse_Sync.Add_Entity(Pulse_Network, Temporal_Anchor.Base);
       
       Console_New_Line;
-      Console_Put_String(">>> PROTOCOL STEP 5: PULSE PROCEDURES TEST <<<");
+      Console_Put_String(">>> PHASE 3: ENHANCED PULSE NETWORK <<<");
       Console_New_Line;
-      Console_Put_String("- Testing actual Pulse_Sync procedures");
+      Console_Put_String("- Hardware Entity: Natural Freq=3, Coupling=8");
       Console_New_Line;
-      Console_Put_String("- Get_Flashing_Entities, Broadcast_Pulse");
+      Console_Put_String("- Temporal Entity: Natural Freq=6, Coupling=9");
       Console_New_Line;
-      Console_Put_String("- Process_Insights, Check_Consensus");
+      Console_Put_String("- Firefly Synchronization: ACTIVE");
+      Console_New_Line;
+      Console_Put_String("- Pulse Coupling: ENABLED");
       Console_New_Line;
       Console_New_Line;
-   end Initialize_Pulse_Procedures_Test;
+   end Initialize_Enhanced_Pulse_Network;
 
-   procedure Run_Pulse_Procedures_Cycle is
-      -- Step 5: Test actual pulse procedures
+   procedure Evolve_Specialized_Entities is
+   begin
+      -- Evolve hardware entity with its domain logic
+      Hardware_Entity.Evolve_Phase(Hardware_Anchor);
+      Pulse_Network.Entities(1) := Hardware_Anchor.Base;
+      
+      -- Evolve temporal entity with its domain logic  
+      Temporal_Entity.Evolve_Phase(Temporal_Anchor);
+      Pulse_Network.Entities(2) := Temporal_Anchor.Base;
+      
+      -- Update network cycle count
+      Pulse_Network.Cycle_Count := Pulse_Network.Cycle_Count + 1;
+   end Evolve_Specialized_Entities;
+
+   procedure Process_Entity_Flashes is
       Flashing_Entities : Pulse_Sync.Entity_Array(1..Pulse_Network.Entity_Count);
       Flash_Count : Natural;
+      Insights : Pulse_Sync.Insight_Array(1..Pulse_Network.Entity_Count);
+      Insight_Count : Natural;
    begin
-      -- Manual evolution (we know this works)
-      for I in 1..Pulse_Network.Entity_Count loop
-         if Pulse_Network.Entities(I).Is_Active then
-            declare
-               Frequency_Effect : constant Phase_Type := Phase_Type(Pulse_Network.Entities(I).Frequency);
-            begin
-               Pulse_Network.Entities(I).Phase := Pulse_Network.Entities(I).Phase + Frequency_Effect;
-            end;
-         end if;
-      end loop;
-      
-      -- TEST: Get_Flashing_Entities procedure
+      -- Get currently flashing entities using ENHANCED API
       Pulse_Sync.Get_Flashing_Entities(Pulse_Network, Flashing_Entities, Flash_Count);
       
-      -- TEST: Process flashes if any detected
+      -- Process flashes if any detected
       if Flash_Count > 0 then
-         Console_Put_String("⚡ PULSE PROCEDURE FLASH: ");
+         Console_Put_String("⚡ PULSE NETWORK FLASH: ");
          Put_Natural(Flash_Count);
-         Console_Put_String(" entities detected");
+         Console_Put_String(" entities flashing");
          Console_New_Line;
          
-         -- TEST: Broadcast_Pulse procedure
+         -- Display domain-specific insights for each flasher
+         for I in 1 .. Flash_Count loop
+            case Flashing_Entities(I).ID is
+               when ENTITY_HARDWARE =>
+                  Console_Put_String("  🔧 HARDWARE: Memory_Valid=");
+                  Console_Put_Char(Boolean'Pos(Hardware_Anchor.Memory_Validated) + Character'Pos('0'));
+                  Console_Put_String(" Devices=");
+                  Put_Natural(Hardware_Anchor.Devices_Detected);
+                  Console_Put_String(" Coherence=");
+                  Put_Natural(Hardware_Anchor.Resource_Coherence);
+                  Console_Put_String("%");
+                  
+               when ENTITY_TEMPORAL =>
+                  Console_Put_String("  ⏰ TEMPORAL: Timing=");
+                  Put_Natural(Temporal_Entity.Calculate_System_Timing);
+                  Console_Put_String(" Patterns=");
+                  Put_Natural(Temporal_Entity.Analyze_Lifecycle_Patterns);
+                  Console_Put_String(" Optimizations=");
+                  Put_Natural(Temporal_Entity.Generate_Timing_Optimization);
+                  
+               when others =>
+                  Console_Put_String("  🌟 UNKNOWN: ID=");
+                  Put_Natural(Natural(Flashing_Entities(I).ID));
+            end case;
+            Console_New_Line;
+         end loop;
+         
+         -- BROADCAST PULSE to network (firefly coupling)
          Pulse_Sync.Broadcast_Pulse(Pulse_Network, Flashing_Entities, Flash_Count);
          
-         -- TEST: Process_Insights procedure  
+         -- PROCESS INSIGHTS from flashing entities
          Pulse_Sync.Process_Insights(Pulse_Network, Flashing_Entities, Flash_Count);
          
          Total_Flashes := Total_Flashes + Flash_Count;
          
-         -- Reset flashed entities
-         for I in 1..Flash_Count loop
-            Flashing_Entities(I).Phase := 0;
-            Flashing_Entities(I).Flash_Count := Flashing_Entities(I).Flash_Count + 1;
+         -- Reset flashed entities (refractory period)
+         for I in 1 .. Flash_Count loop
+            case Flashing_Entities(I).ID is
+               when ENTITY_HARDWARE =>
+                  Hardware_Anchor.Base.Phase := 0;
+                  Hardware_Anchor.Base.Flash_Count := Hardware_Anchor.Base.Flash_Count + 1;
+               when ENTITY_TEMPORAL =>
+                  Temporal_Anchor.Base.Phase := 0;
+                  Temporal_Anchor.Base.Flash_Count := Temporal_Anchor.Base.Flash_Count + 1;
+               when others =>
+                  null;
+            end case;
          end loop;
+         
+         -- Update network state
+         Pulse_Network.Entities(1) := Hardware_Anchor.Base;
+         Pulse_Network.Entities(2) := Temporal_Anchor.Base;
       end if;
+   end Process_Entity_Flashes;
+
+   procedure Check_Network_Consensus is
+      Has_Consensus : Boolean;
+   begin
+      -- CHECK CONSENSUS using enhanced algorithm
+      Has_Consensus := Pulse_Sync.Check_Consensus(Pulse_Network);
       
+      if Has_Consensus then
+         Last_Consensus_Cycle := Cycle_Count;
+         Console_Put_String("🎯 NETWORK CONSENSUS: All entities synchronized!");
+         Console_New_Line;
+         Console_Put_String("   Phase Coherence: ");
+         Put_Natural(Pulse_Sync.Calculate_Phase_Coherence(Pulse_Network));
+         Console_Put_String("%");
+         Console_New_Line;
+         
+         -- Optional: Reset network after consensus achievement
+         if Total_Flashes > 10 then
+            Console_Put_String("   🔄 Network reset for new synchronization cycle");
+            Console_New_Line;
+            Pulse_Sync.Reset_Network_Phases(Pulse_Network);
+            Hardware_Anchor.Base.Phase := 200;  -- Partial reset
+            Temporal_Anchor.Base.Phase := 100;  -- Staggered restart
+         end if;
+      end if;
+   end Check_Network_Consensus;
+
+   procedure Display_Network_Status is
+      Current_Coherence : Natural;
+   begin
+      -- Calculate current network coherence
+      Current_Coherence := Pulse_Sync.Calculate_Phase_Coherence(Pulse_Network);
+      Network_Coherence := (Network_Coherence + Current_Coherence) / 2;  -- Moving average
+      
+      -- Display status every 10 cycles
+      if Cycle_Count mod 10 = 0 then
+         Console_Put_String("📊 Network Status - Cycle ");
+         Put_Natural(Cycle_Count);
+         Console_Put_String(": Coherence=");
+         Put_Natural(Network_Coherence);
+         Console_Put_String("% Flashes=");
+         Put_Natural(Total_Flashes);
+         Console_Put_String(" Active=");
+         Put_Natural(Pulse_Sync.Get_Active_Entity_Count(Pulse_Network));
+         Console_New_Line;
+         
+         -- Display entity phases
+         Console_Put_String("   Hardware: Phase=");
+         Put_Natural(Natural(Hardware_Anchor.Base.Phase));
+         Console_Put_String("/");
+         Put_Natural(Natural(PHASE_THRESHOLD));
+         Console_Put_String(" Temporal: Phase=");
+         Put_Natural(Natural(Temporal_Anchor.Base.Phase));
+         Console_Put_String("/");
+         Put_Natural(Natural(PHASE_THRESHOLD));
+         Console_New_Line;
+      end if;
+   end Display_Network_Status;
+
+   procedure Run_Enhanced_Pulse_Cycle is
+   begin
       Cycle_Count := Cycle_Count + 1;
       
-      -- TEST: Check_Consensus function
-      if Pulse_Sync.Check_Consensus(Pulse_Network) then
-         Console_Put_String("🎯 CONSENSUS DETECTED via Check_Consensus!");
-         Console_New_Line;
-      end if;
+      -- 1. Evolve all specialized entities
+      Evolve_Specialized_Entities;
       
-      -- Display pulse procedure progress
-      if Cycle_Count mod 8 = 0 then
-         Console_Put_String("Pulse Procedures - Cycle ");
-         Put_Natural(Cycle_Count);
-         Console_Put_String(": Flashes=");
-         Put_Natural(Total_Flashes);
-         Console_New_Line;
-      end if;
-   end Run_Pulse_Procedures_Cycle;
+      -- 2. Process any entity flashes
+      Process_Entity_Flashes;
+      
+      -- 3. Check for network consensus
+      Check_Network_Consensus;
+      
+      -- 4. Display current status
+      Display_Network_Status;
+   end Run_Enhanced_Pulse_Cycle;
 
    procedure EmergeOS is
    begin
@@ -325,19 +421,19 @@ package body EmergeOS is
       Initialize_Entities;
       Console_Clear;
       
-      Console_Put_String ("HoloXlife OS - Protocol Step 5");
+      Console_Put_String ("HoloXlife OS - Protocol Step 7");
       Console_New_Line;
-      Console_Put_String ("Complete 256+ Line Version");
+      Console_Put_String ("Enhanced Pulse Synchronization");
       Console_New_Line;
-      Console_Put_String ("Actual Pulse Procedures Test");
+      Console_Put_String ("Hardware + Temporal Entities Active");
       Console_New_Line;
       Console_Put_String ("=============================================");
       Console_New_Line;
       Console_New_Line;
 
-      Console_Put_String ("Testing Actual Pulse Procedures...");
+      Console_Put_String ("Initializing Enhanced Pulse Network...");
       Console_New_Line;
-      Initialize_Pulse_Procedures_Test;
+      Initialize_Enhanced_Pulse_Network;
 
       Console_Put_String ("Initializing Holographic Memory...");
       Console_New_Line;
@@ -348,39 +444,51 @@ package body EmergeOS is
 
       Console_Put_String ("=============================================");
       Console_New_Line;
-      Console_Put_String ("STEP 5: Pulse Procedures Active");
+      Console_Put_String ("PHASE 3: FIREFLY SYNCHRONIZATION ACTIVE");
       Console_New_Line;
-      Console_Put_String ("Testing Get_Flashing_Entities, Broadcast_Pulse");
+      Console_Put_String ("Hardware Entity (Freq=3) + Temporal Entity (Freq=6)");
       Console_New_Line;
-      Console_Put_String ("Process_Insights, Check_Consensus");
+      Console_Put_String ("Pulse Coupling: Entities influence each other's phases");
+      Console_New_Line;
+      Console_Put_String ("Emergent Synchrony: Natural consensus formation");
       Console_New_Line;
       Console_Put_String ("=============================================");
       Console_New_Line;
       Console_New_Line;
 
-      -- Pulse procedures testing loop
+      -- Enhanced pulse synchronization main loop
       loop
-         Run_Pulse_Procedures_Cycle;
+         Run_Enhanced_Pulse_Cycle;
          
-         -- Exit after reasonable test duration
-         exit when Cycle_Count >= 40 or Total_Flashes >= 6;
+         -- Exit after comprehensive test duration
+         exit when Cycle_Count >= 100 or Total_Flashes >= 15;
       end loop;
 
       Console_New_Line;
       Console_Put_String ("=============================================");
       Console_New_Line;
-      Console_Put_String ("PROTOCOL STEP 5 COMPLETE");
+      Console_Put_String ("PHASE 3 COMPLETE: FIREFLY SYNCHRONIZATION DEMONSTRATED");
       Console_New_Line;
-      Console_Put_String ("Complete system operational");
+      Console_Put_String ("Total Cycles: ");
+      Put_Natural(Cycle_Count);
       Console_New_Line;
-      Console_Put_String ("Total Procedure Flashes: ");
+      Console_Put_String ("Total Flashes: ");
       Put_Natural(Total_Flashes);
       Console_New_Line;
-      Console_Put_String ("Holographic Memory: ACTIVE");
+      Console_Put_String ("Final Coherence: ");
+      Put_Natural(Network_Coherence);
+      Console_Put_String ("%");
       Console_New_Line;
-      Console_Put_String ("Entity Framework: READY");
+      Console_Put_String ("Consensus Events: ");
+      if Last_Consensus_Cycle > 0 then
+         Put_Natural(Last_Consensus_Cycle);
+      else
+         Console_Put_String("None");
+      end if;
       Console_New_Line;
-      Console_Put_String ("Ready for Step 6: Full synchronization");
+      Console_Put_String ("=============================================");
+      Console_New_Line;
+      Console_Put_String ("Ready for Phase 4: Advanced Synchronization & Domain Integration");
       Console_New_Line;
       Console_Put_String ("=============================================");
       Console_New_Line;
