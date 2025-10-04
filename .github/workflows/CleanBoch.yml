@@ -18,7 +18,7 @@ jobs:
           echo "floppya: 1_44=emergeos.img, status=inserted" >> bochsrc.txt
           echo "romimage: file=/usr/share/bochs/BIOS-bochs-latest" >> bochsrc.txt
           echo "vgaromimage: file=/usr/share/bochs/VGABIOS-lgpl-latest" >> bochsrc.txt
-          echo "display_library: x" >> bochsrc.txt
+          echo "display_library: sdl" >> bochsrc.txt
           echo "cpu: count=1, ips=4000000" >> bochsrc.txt
           echo "megs: 32" >> bochsrc.txt
           echo "log: bochs.log" >> bochsrc.txt
