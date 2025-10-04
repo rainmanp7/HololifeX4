@@ -1,21 +1,9 @@
-# Bochs Configuration for HoloXlife Pure Ada OS - HEADLESS VERSION
-# ----------------------------------------------
-# Disk Image
-floppy: 1_44=emergeos.img, status=inserted
-
-# Boot Settings
+# Minimal Bochs config for GitHub Actions
+megs: 16
+romimage: file=$BXSHARE/BIOS-bochs-latest
+vgaromimage: file=$BXSHARE/VGABIOS-lgpl-latest
 boot: floppy
-
-# HEADLESS DISPLAY - No GUI required
+floppy: 1_44=emergeos.img, status=inserted
 display_library: nogui
-
-# Debugging Settings
-magic_break: enabled=1
-
-# Serial output for debugging
-com1: enabled=1, mode=file, dev=serial.log
-
-# Logging
 log: bochs.log
-panic: action=ask
-error: action=report
+panic: action=report
