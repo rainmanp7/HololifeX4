@@ -1,11 +1,15 @@
--- Pulse Synchronization Engine - ENHANCED for Phase 3 Integration
+-- Pulse Synchronization Engine - TYPE-CORRECTED for Phase 3
 -- Firefly-inspired pulse-coupled synchronization
 with Pulse_Types; use Pulse_Types;
 
 package Pulse_Sync is
    
+   -- Local type definitions to avoid dependency issues
+   type Local_Entity_Array is array (1..MAX_ENTITIES) of Entity_Record;
+   type Insight_Array is array (1..MAX_ENTITIES) of Entity_Record;
+   
    type Sync_Network is record
-      Entities : Entity_Array(1..MAX_ENTITIES);
+      Entities : Local_Entity_Array;
       Entity_Count : Natural;
       Cycle_Count : Natural;
       Coherence_Level : Natural;
@@ -19,15 +23,15 @@ package Pulse_Sync is
    
    -- Enhanced pulse synchronization procedures
    procedure Get_Flashing_Entities(Network : in Sync_Network;
-                                  Flashers : out Entity_Array; 
+                                  Flashers : out Local_Entity_Array; 
                                   Count : out Natural);
    
    procedure Broadcast_Pulse(Network : in out Sync_Network;
-                           Flashers : in Entity_Array;
+                           Flashers : in Local_Entity_Array;
                            Count : in Natural);
    
    procedure Process_Insights(Network : in Sync_Network;
-                            Flashers : in Entity_Array;
+                            Flashers : in Local_Entity_Array;
                             Count : in Natural);
    
    function Check_Consensus(Network : Sync_Network) return Boolean;
