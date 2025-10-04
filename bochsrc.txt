@@ -1,12 +1,47 @@
-# HEADLESS Bochs configuration for HoloXlife Pure Ada OS
-megs: 16
-romimage: file=$BXSHARE/BIOS-bochs-latest
-vgaromimage: file=$BXSHARE/VGABIOS-lgpl-latest
+# Bochs configuration for HoloXlife Pure Ada Operating System with VGA capture
+# This config enables VGA output in CI/CD environments using Xvfb
+
+# Boot configuration
 boot: floppy
 floppya: 1_44=emergeos.img, status=inserted
-display_library: nogui
+
+# ROM images - REQUIRED for VGA functionality
+romimage: file=/usr/share/bochs/BIOS-bochs-latest
+vgaromimage: file=/usr/share/bochs/VGABIOS-lgpl-latest
+
+# Display library - CRITICAL: Use 'x' to enable VGA rendering with Xvfb
+# DO NOT use 'nogui' - it disables all graphical output
+display_library: x, options="gui_debug"
+
+# CPU configuration
+cpu: model=pentium_mmx, ips=4000000, reset_on_triple_fault=1
+megs: 256
+
+# VGA configuration
+vga: extension=none, update_interval=50000
+
+# Logging configuration
 log: bochs.log
+logprefix: %t%e%d
 panic: action=report
 error: action=report
+info: action=report
+debug: action=ignore
+debugger_log: -
+
+# Serial port for debug output
 com1: enabled=1, mode=file, dev=serial.log
+
+# Input devices
+mouse: enabled=0
+keyboard: type=mf, serial_delay=250, paste_delay=100000
+
+# Clock
+clock: sync=realtime, time0=local
+
+# Magic break for debugging
 magic_break: enabled=1
+
+# Screenshot capture - automatically saves VGA output as PNG files
+# Takes a screenshot every 100 cycles
+screenshot: prefix=vga_output_, every=100
