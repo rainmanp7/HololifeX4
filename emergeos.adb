@@ -1,4 +1,4 @@
--- emergeos.adb: HoloXlife OS - Protocol Step 2: Pulse_Sync API Discovery
+-- emergeos.adb: HoloXlife OS - Protocol Step 3: Pulse Evolution Testing
 with System;
 with System.Storage_Elements;
 with Pulse_Types; use Pulse_Types;
@@ -12,7 +12,7 @@ package body EmergeOS is
    
    pragma Unreferenced (Word);
 
-   -- VGA CONSOLE SUBSYSTEM (kept minimal for focus)
+   -- VGA CONSOLE SUBSYSTEM
    type VGA_Color is (Black, Blue, Green, Cyan, Red, Magenta, Brown, Light_Gray,
                       Dark_Gray, Light_Blue, Light_Green, Light_Cyan, Light_Red,
                       Light_Magenta, Yellow, White);
@@ -103,106 +103,134 @@ package body EmergeOS is
    end Put_Natural;
 
    -- =============================
-   -- PROTOCOL STEP 2: PULSE_SYNC API DISCOVERY
+   -- PROTOCOL STEP 3: PULSE EVOLUTION TESTING
    -- =============================
    Pulse_Network : Pulse_Sync.Sync_Network;
    Cycle_Count : Natural := 0;
-   Test_Phase : Phase_Type := 500;
+   Total_Flashes : Natural := 0;
 
-   procedure Initialize_API_Discovery is
-      Test_Entity : Pulse_Types.Entity_Record;
+   procedure Initialize_Pulse_Evolution_Test is
+      Entity_1, Entity_2 : Pulse_Types.Entity_Record;
    begin
-      -- Step 2: Test Initialize_Network (verified in Step 1)
+      -- Initialize network
       Pulse_Sync.Initialize_Network(Pulse_Network);
       
-      -- Create test entity
-      Test_Entity := (
+      -- Create two entities with different phases for testing
+      Entity_1 := (
          ID => ENTITY_HARDWARE,
-         Phase => 500,
+         Phase => 800,  -- Near threshold
          Frequency => 5,
+         Coupling => 8,
+         Flash_Count => 0,
+         Is_Active => True
+      );
+      
+      Entity_2 := (
+         ID => ENTITY_BUILD, 
+         Phase => 300,  -- Further from threshold
+         Frequency => 7,
          Coupling => 10,
          Flash_Count => 0,
          Is_Active => True
       );
       
-      -- Step 2: Test Add_Entity (verified in Step 1)  
-      Pulse_Sync.Add_Entity(Pulse_Network, Test_Entity);
+      -- Add entities to network
+      Pulse_Sync.Add_Entity(Pulse_Network, Entity_1);
+      Pulse_Sync.Add_Entity(Pulse_Network, Entity_2);
       
       Console_New_Line;
-      Console_Put_String(">>> PROTOCOL STEP 2: API DISCOVERY <<<");
+      Console_Put_String(">>> PROTOCOL STEP 3: PULSE EVOLUTION <<<");
       Console_New_Line;
-      Console_Put_String("- Testing Pulse_Sync procedure calls");
+      Console_Put_String("- Testing Evolve_Network procedure");
       Console_New_Line;
-      Console_Put_String("- Network initialized with 1 entity");
+      Console_Put_String("- Entities: 2 (Phase 0.8 + Phase 0.3)");
+      Console_New_Line;
+      Console_Put_String("- Ready for pulse synchronization test");
       Console_New_Line;
       Console_New_Line;
-   end Initialize_API_Discovery;
+   end Initialize_Pulse_Evolution_Test;
 
-   procedure Run_API_Discovery_Cycle is
-      -- Step 2: Try to discover actual procedure signatures
-      -- We'll attempt to call procedures that showed as "not referenced"
+   procedure Run_Pulse_Evolution_Cycle is
+      -- Step 3: Test actual pulse evolution procedures
+      -- We'll try to call the procedures that showed as "not referenced"
    begin
-      -- Manual phase evolution for testing
-      Test_Phase := Test_Phase + 5;
-      if Test_Phase >= 1000 then
-         Test_Phase := 0;
-         Console_Put_String("💡 Manual Flash: Phase reset");
-         Console_New_Line;
-      end if;
+      -- ATTEMPT 1: Test Evolve_Network if it exists
+      -- This should evolve all entity phases
+      Pulse_Sync.Evolve_Network(Pulse_Network);
       
       Cycle_Count := Cycle_Count + 1;
       
-      -- Display discovery progress
-      if Cycle_Count mod 15 = 0 then
-         Console_Put_String("API Discovery - Cycle ");
+      -- Display evolution progress
+      if Cycle_Count mod 10 = 0 then
+         Console_Put_String("Pulse Evolution - Cycle ");
          Put_Natural(Cycle_Count);
-         Console_Put_String(": Testing phase evolution");
+         Console_Put_String(": Network evolving...");
+         Console_New_Line;
+         
+         -- Show entity status if we can access them
+         Console_Put_String("  Entities active: ");
+         Put_Natural(Pulse_Network.Entity_Count);
+         Console_Put_String(" | Coherence: ");
+         Put_Natural(Pulse_Network.Coherence_Level);
+         Console_Put_String("%");
          Console_New_Line;
       end if;
-   end Run_API_Discovery_Cycle;
+      
+      -- Simple manual flash detection for testing
+      if Cycle_Count = 25 then
+         Console_Put_String("💡 SIMULATED FLASH: Testing flash mechanics");
+         Console_New_Line;
+         Total_Flashes := Total_Flashes + 1;
+      end if;
+   end Run_Pulse_Evolution_Cycle;
 
    procedure EmergeOS is
    begin
       Initialize_Console;
       Console_Clear;
       
-      Console_Put_String ("HoloXlife OS - Protocol Step 2");
+      Console_Put_String ("HoloXlife OS - Protocol Step 3");
       Console_New_Line;
-      Console_Put_String ("Pulse_Sync Procedure Discovery");
-      Console_New_Line;
-      Console_Put_String ("=============================================");
-      Console_New_Line;
-      Console_New_Line;
-
-      -- STEP 2: Initialize API discovery
-      Console_Put_String ("Initializing API Discovery Test...");
-      Console_New_Line;
-      Initialize_API_Discovery;
-
-      Console_Put_String ("=============================================");
-      Console_New_Line;
-      Console_Put_String ("STEP 2: Testing known procedures");
+      Console_Put_String ("Pulse Evolution Procedure Testing");
       Console_New_Line;
       Console_Put_String ("=============================================");
       Console_New_Line;
       Console_New_Line;
 
-      -- API discovery loop
+      -- STEP 3: Initialize pulse evolution test
+      Console_Put_String ("Initializing Pulse Evolution Test...");
+      Console_New_Line;
+      Initialize_Pulse_Evolution_Test;
+
+      Console_Put_String ("=============================================");
+      Console_New_Line;
+      Console_Put_String ("STEP 3: Testing Evolve_Network procedure");
+      Console_New_Line;
+      Console_Put_String ("=============================================");
+      Console_New_Line;
+      Console_New_Line;
+
+      -- Pulse evolution testing loop
       loop
-         Run_API_Discovery_Cycle;
+         Run_Pulse_Evolution_Cycle;
          
-         -- Exit after demonstrating API discovery
-         exit when Cycle_Count >= 45 or Test_Phase = 0;
+         -- Exit after reasonable test duration
+         exit when Cycle_Count >= 50 or Total_Flashes >= 2;
       end loop;
 
       Console_New_Line;
       Console_Put_String ("=============================================");
       Console_New_Line;
-      Console_Put_String ("PROTOCOL STEP 2 COMPLETE");
+      Console_Put_String ("PROTOCOL STEP 3 COMPLETE");
       Console_New_Line;
-      Console_Put_String ("Basic procedures: VERIFIED");
+      Console_Put_String ("Pulse evolution testing: IN PROGRESS");
       Console_New_Line;
-      Console_Put_String ("Ready for Step 3: Pulse evolution testing");
+      Console_Put_String ("Total Cycles: ");
+      Put_Natural(Cycle_Count);
+      Console_Put_String (" | Test Flashes: ");
+      Put_Natural(Total_Flashes);
+      Console_New_Line;
+      Console_Put_String ("Ready for Step 4: Full synchronization");
       Console_New_Line;
       Console_Put_String ("=============================================");
       Console_New_Line;
