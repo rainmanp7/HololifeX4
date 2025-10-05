@@ -1,70 +1,45 @@
--- boot.adb: Pure Ada Bootloader - SIMPLIFIED VGA OUTPUT
+-- boot.adb: Pure Ada Bootloader - PROTOCOL-VERIFIED MEMORY MAPPING
 with System.Storage_Elements;
-with System.Machine_Code;
 with EmergeOS;
 
 procedure Boot is
    type Byte is mod 2**8;
 
-   -- VGA memory address (matches C system physical mapping)
-   VGA_MEMORY : constant := 16#B8000#;
+   -- VGA memory mapping (PROTOCOL: Use proven C→Ada pattern)
+   type VGA_Entry is record
+      Char : Character;
+      Attr : Byte;
+   end record;
+   pragma Pack (VGA_Entry);
 
+   type VGA_Buffer_Type is array (0 .. 24, 0 .. 79) of VGA_Entry;
+   
+   VGA_Buffer : VGA_Buffer_Type;
+   for VGA_Buffer'Address use System.Storage_Elements.To_Address(16#B8000#);
+   pragma Import (Ada, VGA_Buffer);
+   pragma Volatile (VGA_Buffer);
+   
    Console_Row : Natural := 0;
    Console_Col : Natural := 0;
 
-   -- IMMEDIATE VGA TEST PATTERN - FIRST EXECUTION
+   -- PROTOCOL: Immediate VGA test using memory mapping
    procedure Immediate_VGA_Test is
    begin
-      -- Direct assembly write to VGA memory (protocol: immediate hardware access)
-      System.Machine_Code.Asm(
-        "movl $$0xB8000, %%edi" & ASCII.LF &
-        "movb $$'H', (%%edi)" & ASCII.LF &
-        "movb $$0x0F, 1(%%edi)" & ASCII.LF &
-        "movb $$'Y', 2(%%edi)" & ASCII.LF &
-        "movb $$0x0F, 3(%%edi)" & ASCII.LF &
-        "movb $$'P', 4(%%edi)" & ASCII.LF &
-        "movb $$0x0F, 5(%%edi)" & ASCII.LF &
-        "movb $$'E', 6(%%edi)" & ASCII.LF &
-        "movb $$0x0F, 7(%%edi)" & ASCII.LF &
-        "movb $$'R', 8(%%edi)" & ASCII.LF &
-        "movb $$0x0F, 9(%%edi)",
-        Volatile => True,
-        Clobber => "edi"
-      );
+      -- Direct memory write using proven pattern (no assembly)
+      VGA_Buffer(0, 0) := ('H', 16#0F#);
+      VGA_Buffer(0, 1) := ('Y', 16#0F#);
+      VGA_Buffer(0, 2) := ('P', 16#0F#);
+      VGA_Buffer(0, 3) := ('E', 16#0F#);
+      VGA_Buffer(0, 4) := ('R', 16#0F#);
    end Immediate_VGA_Test;
 
-   -- SIMPLIFIED: Direct memory calculation without complex assembly
-   procedure Write_To_VGA (Row, Col : Natural; Char : Character; Attr : Byte) is
-      Position : constant Natural := Row * 80 + Col;
-      VGA_Offset : constant Natural := VGA_MEMORY + Position * 2;
-   begin
-      -- Direct memory write using simple assembly
-      System.Machine_Code.Asm(
-        "movb %0, %1" & ASCII.LF &
-        "movb %2, %3",
-        Inputs => (
-          Byte'Asm_Input("r", Character'Pos(Char)),
-          System.Storage_Elements.Integer_Address'Asm_Input("m", 
-            System.Storage_Elements.To_Integer(System.Storage_Elements.To_Address(VGA_Offset))),
-          Byte'Asm_Input("r", Attr),
-          System.Storage_Elements.Integer_Address'Asm_Input("m", 
-            System.Storage_Elements.To_Integer(System.Storage_Elements.To_Address(VGA_Offset + 1)))
-        ),
-        Volatile => True
-      );
-   end Write_To_VGA;
-
-   function Make_Color (FG, BG : Natural) return Byte is
-   begin
-      return Byte(FG) or (Byte(BG) * 16);
-   end Make_Color;
-
+   -- PROTOCOL: Simplified console using memory mapping
    procedure Console_Clear is
-      Color : constant Byte := Make_Color(15, 0); -- White on black
+      Color : constant Byte := 16#0F#; -- White on black
    begin
-      for Row in 0 .. 24 loop
-         for Col in 0 .. 79 loop
-            Write_To_VGA(Row, Col, ' ', Color);
+      for Row in VGA_Buffer'Range(1) loop
+         for Col in VGA_Buffer'Range(2) loop
+            VGA_Buffer(Row, Col) := (' ', Color);
          end loop;
       end loop;
       Console_Row := 0;
@@ -72,7 +47,7 @@ procedure Boot is
    end Console_Clear;
 
    procedure Console_Put_Char (C : Character) is
-      Color : constant Byte := Make_Color(15, 0); -- White on black
+      Color : constant Byte := 16#0F#; -- White on black
    begin
       if C = ASCII.LF then
          Console_Col := 0;
@@ -83,7 +58,7 @@ procedure Boot is
          Console_Col := 0;
       else
          if Console_Row < 25 and Console_Col < 80 then
-            Write_To_VGA(Console_Row, Console_Col, C, Color);
+            VGA_Buffer(Console_Row, Console_Col) := (C, Color);
             Console_Col := Console_Col + 1;
             if Console_Col >= 80 then
                Console_Col := 0;
@@ -108,10 +83,10 @@ procedure Boot is
    end Console_New_Line;
 
 begin
-   -- IMMEDIATE VGA TEST - FIRST INSTRUCTION (VIDEO FIX)
+   -- PROTOCOL: Immediate VGA output using proven memory mapping
    Immediate_VGA_Test;
 
-   -- THEN PROCEED WITH EXISTING CODE (UNCHANGED)
+   -- PROTOCOL: Preserve all working systems (unchanged)
    Console_Clear;
    Console_Put_String("HoloXlife OS v1.0 - Pure Ada Implementation");
    Console_New_Line;
@@ -120,10 +95,9 @@ begin
    Console_Put_String("System: Starting kernel...");
    Console_New_Line;
 
-   -- Call the main kernel procedure
+   -- PROTOCOL: Maintain entity system call
    EmergeOS.EmergeOS;
 
-   -- If kernel returns, halt
    Console_Put_String("System: Kernel returned - halting");
    Console_New_Line;
 
