@@ -5,7 +5,8 @@ GCC = gcc-10
 ADAFLAGS = -x ada -gnat2012 -gnatwa -gnatwo -gnatp -O2 \
            -m32 -nostdlib -nodefaultlibs \
            -fno-stack-protector -static -c \
-           -gnatec=gnat.adc
+           -gnatec=gnat.adc \
+           -gnatg  # CRITICAL: Enable GNAT implementation features for machine code
 # Linker flags for bare-metal Ada
 LDFLAGS = -m elf_i386 -T linker.ld --nmagic -nostdlib -static
 BOCHS = bochs
@@ -22,13 +23,15 @@ gnat.adc:
 	@echo "pragma Restrictions (No_Finalization);" >> gnat.adc
 	@echo "pragma Restrictions (No_Secondary_Stack);" >> gnat.adc
 
-# Compile bootloader in Ada
-boot.o: boot.adb gnat.adc
+# Compile bootloader in Ada (DEPENDS ON SYSTEM FOR MACHINE CODE)
+boot.o: boot.adb gnat.adc system.ads
 	$(GCC) $(ADAFLAGS) boot.adb -o boot.o
+	@echo "✅ Bootloader compiled with machine code support"
 
 # Compile Pure Ada kernel using GCC directly (no gnatmake)
-emergeos.o: emergeos.adb emergeos.ads gnat.adc
+emergeos.o: emergeos.adb emergeos.ads gnat.adc system.ads
 	$(GCC) $(ADAFLAGS) emergeos.adb -o emergeos.o
+	@echo "✅ Kernel compiled with machine code support"
 
 # ===========================================
 # PULSE-COUPLED CORE COMPILATION (PHASE 1)
@@ -68,6 +71,7 @@ kernel.bin: boot.o emergeos.o pulse_types.o pulse_entities.o pulse_sync.o hardwa
 	ld $(LDFLAGS) -o kernel.elf boot.o emergeos.o pulse_types.o pulse_entities.o pulse_sync.o hardware_entity.o temporal_entity.o
 	objcopy -O binary kernel.elf kernel.bin
 	@echo "✅ Kernel linked with Hardware + Temporal Entities"
+	@echo "📊 Kernel size: $$(stat -c%s kernel.bin) bytes"
 
 # Build bootloader from assembly
 boot.bin: boot.asm kernel.bin
@@ -81,7 +85,8 @@ emergeos.img: boot.bin kernel.bin
 	dd if=/dev/zero of=$@ bs=512 count=2880 2>/dev/null
 	dd if=boot.bin of=$@ conv=notrunc 2>/dev/null
 	dd if=kernel.bin of=$@ bs=512 seek=1 conv=notrunc 2>/dev/null
-	@echo "HoloXlife OS (Phase 3: Hardware+Temporal Entities) image created: emergeos.img"
+	@echo "🎉 HoloXlife OS (Phase 3: Hardware+Temporal Entities) image created: emergeos.img"
+	@echo "📊 Image size: $$(stat -c%s emergeos.img) bytes"
 
 # Run Pure Ada OS in Bochs
 run: emergeos.img
@@ -91,6 +96,15 @@ run: emergeos.img
 # Clean build artifacts (including all entities)
 clean:
 	rm -f *.bin *.o *.img *.elf *.ali gnat.adc
-	@echo "Pure Ada OS + Multi-Entity build cleaned"
+	@echo "🧹 Pure Ada OS + Multi-Entity build cleaned"
 
-.PHONY: all clean run
+# Build info target
+info:
+	@echo "🔧 HoloXlife Pure Ada OS Build Information:"
+	@echo "   Compiler: $(GCC)"
+	@echo "   Assembler: $(ASM)"
+	@echo "   Ada Flags: -gnat2012 -gnatg (machine code enabled)"
+	@echo "   Entities: Hardware + Temporal (Phase 3)"
+	@echo "   Features: Direct VGA memory access, Pulse-coupled sync"
+
+.PHONY: all clean run info
