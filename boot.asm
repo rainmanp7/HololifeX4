@@ -95,8 +95,9 @@ protected_mode:
     mov ss, ax
     mov esp, 0x90000  ; Set up stack
 
-    ; Call Ada main procedure (linked in kernel.bin)
-    call 0x8000     ; Jump to loaded kernel
+    ; FIXED: Call Ada entry point directly (mangled name for Boot procedure)
+    extern _ada_boot
+    call _ada_boot     ; Call Ada boot procedure
 
     ; If Ada code returns, halt
     hlt
