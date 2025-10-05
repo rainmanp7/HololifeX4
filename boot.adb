@@ -3,6 +3,9 @@ with System.Storage_Elements;
 with System.Machine_Code;
 with EmergeOS;
 
+-- FIX: Make Integer_Address operators visible
+use type System.Storage_Elements.Integer_Address;
+
 procedure Boot is
    type Byte is mod 2**8;
 
