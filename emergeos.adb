@@ -17,58 +17,53 @@ package body EmergeOS is
    pragma Unreferenced (Word);
 
    -- ================================
-   -- VGA CONSOLE SUBSYSTEM (COMPLETE)
+   -- VGA CONSOLE SUBSYSTEM (FIXED)
    -- ================================
-   type VGA_Color is 
-     (Black, Blue, Green, Cyan, Red, Magenta, Brown, Light_Gray,
-      Dark_Gray, Light_Blue, Light_Green, Light_Cyan, Light_Red,
-      Light_Magenta, Yellow, White);
-   for VGA_Color use 
-     (Black => 0, Blue => 1, Green => 2, Cyan => 3, Red => 4, 
-      Magenta => 5, Brown => 6, Light_Gray => 7, Dark_Gray => 8,
-      Light_Blue => 9, Light_Green => 10, Light_Cyan => 11, 
-      Light_Red => 12, Light_Magenta => 13, Yellow => 14, White => 15);
-   
-   type VGA_Entry is record
-      Char : Character;
-      Attr : Byte;
-   end record;
-   pragma Pack (VGA_Entry);
-   
-   type VGA_Buffer_Type is array (0 .. 24, 0 .. 79) of VGA_Entry;
-   
-   VGA_Buffer : VGA_Buffer_Type;
-   for VGA_Buffer'Address use System.Storage_Elements.To_Address(16#B8000#);
-   pragma Import (Ada, VGA_Buffer);
+   VGA_MEMORY : constant := 16#B8000#;
    
    Console_Row : Natural := 0;
    Console_Col : Natural := 0;
-   
-   procedure Initialize_Console is
+
+   procedure Write_To_VGA(Row, Col : Natural; Char : Character; Attr : Byte) is
    begin
-      Console_Row := 0;
-      Console_Col := 0;
-   end Initialize_Console;
-   
-   function Make_Color (FG, BG : VGA_Color) return Byte is
+      -- Calculate position in VGA buffer
+      declare
+         Position : constant Natural := Row * 80 + Col;
+         VGA_Ptr : System.Address := System.Storage_Elements.To_Address(VGA_MEMORY + Position * 2);
+      begin
+         -- Write character directly to memory
+         System.Machine_Code.Asm(
+           "movb %0, (%1)" & ASCII.LF &
+           "movb %2, 1(%1)",
+           Inputs => (
+             Byte'Asm_Input("r", Character'Pos(Char)),
+             System.Address'Asm_Input("r", VGA_Ptr),
+             Byte'Asm_Input("r", Attr)
+           ),
+           Volatile => True
+         );
+      end;
+   end Write_To_VGA;
+
+   function Make_Color(FG, BG : Natural) return Byte is
    begin
-      return Byte(VGA_Color'Pos(FG)) or (Byte(VGA_Color'Pos(BG)) * 16);
+      return Byte(FG) or (Byte(BG) * 16);
    end Make_Color;
-   
+
    procedure Console_Clear is
-      Color : constant Byte := Make_Color (White, Black);
+      Color : constant Byte := Make_Color(15, 0); -- White on black
    begin
-      for Row in VGA_Buffer'Range(1) loop
-         for Col in VGA_Buffer'Range(2) loop
-            VGA_Buffer(Row, Col) := (' ', Color);
+      for Row in 0 .. 24 loop
+         for Col in 0 .. 79 loop
+            Write_To_VGA(Row, Col, ' ', Color);
          end loop;
       end loop;
       Console_Row := 0;
       Console_Col := 0;
    end Console_Clear;
-   
-   procedure Console_Put_Char (C : Character) is
-      Color : constant Byte := Make_Color (White, Black);
+
+   procedure Console_Put_Char(C : Character) is
+      Color : constant Byte := Make_Color(15, 0); -- White on black
    begin
       if C = ASCII.LF then
          Console_Col := 0;
@@ -79,7 +74,7 @@ package body EmergeOS is
          Console_Col := 0;
       else
          if Console_Row < 25 and Console_Col < 80 then
-            VGA_Buffer(Console_Row, Console_Col) := (C, Color);
+            Write_To_VGA(Console_Row, Console_Col, C, Color);
             Console_Col := Console_Col + 1;
             if Console_Col >= 80 then
                Console_Col := 0;
@@ -90,18 +85,19 @@ package body EmergeOS is
          end if;
       end if;
    end Console_Put_Char;
-   
-   procedure Console_Put_String (S : String) is
+
+   procedure Console_Put_String(S : String) is
    begin
       for I in S'Range loop
-         Console_Put_Char (S(I));
+         Console_Put_Char(S(I));
       end loop;
    end Console_Put_String;
-   
+
    procedure Console_New_Line is
    begin
-      Console_Put_Char (ASCII.LF);
+      Console_Put_Char(ASCII.LF);
    end Console_New_Line;
+   
 
    -- =======================================
    -- SERIAL OUTPUT FOR QEMU CAPTURE (PROTOCOL ADDITION)
