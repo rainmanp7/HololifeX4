@@ -1,11 +1,11 @@
--- temporal_entity.ads: Temporal Foresight Entity
+-- temporal_entity.ads: Temporal Foresight Entity - UNIFIED TYPE SYSTEM
 -- Second specialized pulse-coupled entity for HelloXLife OS
 with Pulse_Types; use Pulse_Types;
 
 package Temporal_Entity is
    
    type Temporal_Anchor is record
-      Base : Pulse_Types.Entity_Record;
+      Base : Pulse_Types.Entity_Record;  -- Now uses unified type
       Boot_Time_Reference : Natural;
       Cycle_Optimizations : Natural;
       Lifecycle_Phase : Natural;
