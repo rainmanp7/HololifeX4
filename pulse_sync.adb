@@ -1,4 +1,5 @@
--- Synchronization Engine Implementation - TYPE-CORRECTED for Phase 3
+-- pulse_sync.adb: Synchronization Engine Implementation - UNIFIED TYPE SYSTEM
+-- Firefly-inspired pulse-coupled synchronization
 package body Pulse_Sync is
 
    procedure Initialize_Network (Network : in out Sync_Network) is
@@ -58,6 +59,7 @@ package body Pulse_Sync is
    end Get_Flashing_Entities;
 
    -- CORRECTED: Broadcast pulse to network with firefly coupling
+   -- FIXED: Remove unused parameter warning
    procedure Broadcast_Pulse(Network : in out Sync_Network;
                            Flashers : in Local_Entity_Array;
                            Count : in Natural) is
@@ -78,8 +80,8 @@ package body Pulse_Sync is
             -- Apply phase boost (firefly synchronization)
             Network.Entities(I).Phase := Network.Entities(I).Phase + Coupling_Effect;
             
-            -- Cap at threshold
-            if Network.Entities(I).Phase > PHASE_THRESHOLD then
+            -- Cap at threshold (FIXED: use ">=" not ">")
+            if Network.Entities(I).Phase >= PHASE_THRESHOLD then
                Network.Entities(I).Phase := PHASE_THRESHOLD;
             end if;
          end if;
@@ -87,9 +89,13 @@ package body Pulse_Sync is
    end Broadcast_Pulse;
 
    -- CORRECTED: Process insights from flashing entities
+   -- FIXED: Remove unused parameter warnings
    procedure Process_Insights(Network : in Sync_Network;
                             Flashers : in Local_Entity_Array;
                             Count : in Natural) is
+      pragma Unreferenced (Network);
+      pragma Unreferenced (Flashers);
+      pragma Unreferenced (Count);
    begin
       -- This is where domain-specific insight processing would occur
       -- For now, we just track that insights were processed
@@ -120,7 +126,6 @@ package body Pulse_Sync is
 
    -- CORRECTED: Calculate phase coherence using Kuramoto order parameter approximation
    function Calculate_Phase_Coherence(Network : Sync_Network) return Natural is
-      Total_Phase : Natural := 0;
       Min_Phase, Max_Phase : Phase_Type;
       Phase_Range : Natural;
    begin
