@@ -2,10 +2,10 @@
 -- Complete integration with Hardware + Temporal entities and firefly coupling
 with System;
 with System.Storage_Elements;
-with Pulse_Types; 
-with Pulse_Sync; 
-with Hardware_Entity; 
-with Temporal_Entity;
+with Pulse_Types; use Pulse_Types;  -- ESSENTIAL: Entity visibility for pulse network
+with Pulse_Sync; use Pulse_Sync;    -- ESSENTIAL: Network operations visibility  
+with Hardware_Entity; use Hardware_Entity;  -- ESSENTIAL: Hardware entity integration
+with Temporal_Entity; use Temporal_Entity;  -- ESSENTIAL: Temporal entity integration
 with System.Machine_Code; use System.Machine_Code;
 
 package body EmergeOS is
@@ -240,9 +240,9 @@ package body EmergeOS is
    -- =============================
    -- PHASE 3: ENHANCED PULSE NETWORK
    -- =============================
-   Pulse_Network : Pulse_Sync.Sync_Network;
-   Hardware_Anchor : Hardware_Entity.Hardware_Anchor;
-   Temporal_Anchor : Temporal_Entity.Temporal_Anchor;
+   Pulse_Network : Sync_Network;
+   Hardware_Anchor : Hardware_Anchor;
+   Temporal_Anchor : Temporal_Anchor;
    
    Cycle_Count : Natural := 0;
    Total_Flashes : Natural := 0;
@@ -251,15 +251,15 @@ package body EmergeOS is
 
    procedure Initialize_Enhanced_Pulse_Network is
    begin
-      Pulse_Sync.Initialize_Network(Pulse_Network);
+      Initialize_Network(Pulse_Network);
       
       -- Initialize specialized entities
-      Hardware_Entity.Initialize(Hardware_Anchor);
-      Temporal_Entity.Initialize(Temporal_Anchor);
+      Initialize(Hardware_Anchor);
+      Initialize(Temporal_Anchor);
       
       -- Add to pulse network
-      Pulse_Sync.Add_Entity(Pulse_Network, Hardware_Anchor.Base);
-      Pulse_Sync.Add_Entity(Pulse_Network, Temporal_Anchor.Base);
+      Add_Entity(Pulse_Network, Hardware_Anchor.Base);
+      Add_Entity(Pulse_Network, Temporal_Anchor.Base);
       
       Enhanced_New_Line;
       Enhanced_Put_String(">>> PHASE 3: ENHANCED PULSE NETWORK <<<");
@@ -278,11 +278,11 @@ package body EmergeOS is
    procedure Evolve_Specialized_Entities is
    begin
       -- Evolve hardware entity with its domain logic
-      Hardware_Entity.Evolve_Phase(Hardware_Anchor);
+      Evolve_Phase(Hardware_Anchor);
       Pulse_Network.Entities(1) := Hardware_Anchor.Base;
       
       -- Evolve temporal entity with its domain logic  
-      Temporal_Entity.Evolve_Phase(Temporal_Anchor);
+      Evolve_Phase(Temporal_Anchor);
       Pulse_Network.Entities(2) := Temporal_Anchor.Base;
       
       -- Update network cycle count
@@ -291,11 +291,11 @@ package body EmergeOS is
 
    procedure Process_Entity_Flashes is
       -- CORRECTED: Use Local_Entity_Array from Pulse_Sync
-      Flashing_Entities : Pulse_Sync.Local_Entity_Array;
+      Flashing_Entities : Local_Entity_Array;
       Flash_Count : Natural;
    begin
       -- Get currently flashing entities using CORRECTED API
-      Pulse_Sync.Get_Flashing_Entities(Pulse_Network, Flashing_Entities, Flash_Count);
+      Get_Flashing_Entities(Pulse_Network, Flashing_Entities, Flash_Count);
       
       -- Process flashes if any detected
       if Flash_Count > 0 then
@@ -321,12 +321,12 @@ package body EmergeOS is
                      
                   when ENTITY_TEMPORAL =>
                      Enhanced_Put_String("  ⏰ TEMPORAL: Timing=");
-                     Enhanced_Put_Natural(Temporal_Entity.Calculate_System_Timing);
+                     Enhanced_Put_Natural(Calculate_System_Timing);
                      Enhanced_Put_String(" Patterns=");
                      -- PROTOCOL FIX: Use hardcoded value to avoid conversion issues
                      Enhanced_Put_Natural(3);  -- Placeholder for pattern analysis
                      Enhanced_Put_String(" Optimizations=");
-                     Enhanced_Put_Natural(Temporal_Entity.Generate_Timing_Optimization);
+                     Enhanced_Put_Natural(Generate_Timing_Optimization);
                      
                   when others =>
                      Enhanced_Put_String("  🌟 UNKNOWN: ID=");
@@ -338,10 +338,10 @@ package body EmergeOS is
          end loop;
          
          -- BROADCAST PULSE to network (firefly coupling)
-         Pulse_Sync.Broadcast_Pulse(Pulse_Network, Flashing_Entities, Flash_Count);
+         Broadcast_Pulse(Pulse_Network, Flashing_Entities, Flash_Count);
          
          -- PROCESS INSIGHTS from flashing entities
-         Pulse_Sync.Process_Insights(Pulse_Network, Flashing_Entities, Flash_Count);
+         Process_Insights(Pulse_Network, Flashing_Entities, Flash_Count);
          
          Total_Flashes := Total_Flashes + Flash_Count;
          
@@ -369,14 +369,14 @@ package body EmergeOS is
       Has_Consensus : Boolean;
    begin
       -- CHECK CONSENSUS using enhanced algorithm
-      Has_Consensus := Pulse_Sync.Check_Consensus(Pulse_Network);
+      Has_Consensus := Check_Consensus(Pulse_Network);
       
       if Has_Consensus then
          Last_Consensus_Cycle := Cycle_Count;
          Enhanced_Put_String("🎯 NETWORK CONSENSUS: All entities synchronized!");
          Enhanced_New_Line;
          Enhanced_Put_String("   Phase Coherence: ");
-         Enhanced_Put_Natural(Pulse_Sync.Calculate_Phase_Coherence(Pulse_Network));
+         Enhanced_Put_Natural(Calculate_Phase_Coherence(Pulse_Network));
          Enhanced_Put_String("%");
          Enhanced_New_Line;
          
@@ -384,7 +384,7 @@ package body EmergeOS is
          if Total_Flashes > 10 then
             Enhanced_Put_String("   🔄 Network reset for new synchronization cycle");
             Enhanced_New_Line;
-            Pulse_Sync.Reset_Network_Phases(Pulse_Network);
+            Reset_Network_Phases(Pulse_Network);
             Hardware_Anchor.Base.Phase := 200;  -- Partial reset
             Temporal_Anchor.Base.Phase := 100;  -- Staggered restart
             Pulse_Network.Entities(1) := Hardware_Anchor.Base;
@@ -397,7 +397,7 @@ package body EmergeOS is
       Current_Coherence : Natural;
    begin
       -- Calculate current network coherence
-      Current_Coherence := Pulse_Sync.Calculate_Phase_Coherence(Pulse_Network);
+      Current_Coherence := Calculate_Phase_Coherence(Pulse_Network);
       Network_Coherence := (Network_Coherence + Current_Coherence) / 2;  -- Moving average
       
       -- Display status every 10 cycles
@@ -409,7 +409,7 @@ package body EmergeOS is
          Enhanced_Put_String("% Flashes=");
          Enhanced_Put_Natural(Total_Flashes);
          Enhanced_Put_String(" Active=");
-         Enhanced_Put_Natural(Pulse_Sync.Get_Active_Entity_Count(Pulse_Network));
+         Enhanced_Put_Natural(Get_Active_Entity_Count(Pulse_Network));
          Enhanced_New_Line;
          
          -- Display entity phases
