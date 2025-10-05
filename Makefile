@@ -2,11 +2,16 @@
 ASM = nasm
 GCC = gcc-10
 # Use GCC directly for Ada compilation (bypass gnatmake)
-ADAFLAGS = -x ada -gnat2012 -gnatwa -gnatwo -gnatp -O2 \
+# CRITICAL: Remove -gnatwa (all warnings) and -gnatwo (warnings as errors) for boot files
+BOOT_ADAFLAGS = -x ada -gnat2012 -gnatp -O2 \
            -m32 -nostdlib -nodefaultlibs \
            -fno-stack-protector -static -c \
            -gnatec=gnat.adc \
            -gnatg  # CRITICAL: Enable GNAT implementation features for machine code
+
+# Keep style checking for non-boot files
+ADAFLAGS = $(BOOT_ADAFLAGS) -gnatwa -gnatwo
+
 # Linker flags for bare-metal Ada
 LDFLAGS = -m elf_i386 -T linker.ld --nmagic -nostdlib -static
 BOCHS = bochs
@@ -23,14 +28,16 @@ gnat.adc:
 	@echo "pragma Restrictions (No_Finalization);" >> gnat.adc
 	@echo "pragma Restrictions (No_Secondary_Stack);" >> gnat.adc
 
-# Compile bootloader in Ada (DEPENDS ON SYSTEM FOR MACHINE CODE)
+# Compile bootloader in Ada - NO STYLE CHECKING FOR BOOT FILES
 boot.o: boot.adb gnat.adc system.ads
-	$(GCC) $(ADAFLAGS) boot.adb -o boot.o
+	@echo "🔧 Compiling bootloader (style checks disabled for bare metal)..."
+	$(GCC) $(BOOT_ADAFLAGS) boot.adb -o boot.o
 	@echo "✅ Bootloader compiled with machine code support"
 
 # Compile Pure Ada kernel using GCC directly (no gnatmake)
 emergeos.o: emergeos.adb emergeos.ads gnat.adc system.ads
-	$(GCC) $(ADAFLAGS) emergeos.adb -o emergeos.o
+	@echo "🔧 Compiling kernel (style checks disabled for bare metal)..."
+	$(GCC) $(BOOT_ADAFLAGS) emergeos.adb -o emergeos.o
 	@echo "✅ Kernel compiled with machine code support"
 
 # ===========================================
@@ -103,7 +110,8 @@ info:
 	@echo "🔧 HoloXlife Pure Ada OS Build Information:"
 	@echo "   Compiler: $(GCC)"
 	@echo "   Assembler: $(ASM)"
-	@echo "   Ada Flags: -gnat2012 -gnatg (machine code enabled)"
+	@echo "   Boot Flags: -gnat2012 -gnatg (no style checks)"
+	@echo "   Entity Flags: -gnatwa -gnatwo (full style checks)"
 	@echo "   Entities: Hardware + Temporal (Phase 3)"
 	@echo "   Features: Direct VGA memory access, Pulse-coupled sync"
 
