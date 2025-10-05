@@ -136,6 +136,30 @@ package body EmergeOS is
    end Enhanced_New_Line;
 
    -- =======================================
+   -- IMMEDIATE KERNEL VGA TEST (VIDEO FIX)
+   -- =======================================
+   procedure Kernel_VGA_Test is
+   begin
+      -- Write kernel entry pattern to VGA row 1
+      System.Machine_Code.Asm(
+        "movl $$0xB8000 + 160, %edi" & ASCII.LF &  -- Row 1 (80 chars * 2 bytes)
+        "movb $$'K', (%edi)" & ASCII.LF &
+        "movb $$0x0F, 1(%edi)" & ASCII.LF &
+        "movb $$'E', 2(%edi)" & ASCII.LF &
+        "movb $$0x0F, 3(%edi)" & ASCII.LF &
+        "movb $$'R', 4(%edi)" & ASCII.LF &
+        "movb $$0x0F, 5(%edi)" & ASCII.LF &
+        "movb $$'N', 6(%edi)" & ASCII.LF &
+        "movb $$0x0F, 7(%edi)" & ASCII.LF &
+        "movb $$'E', 8(%edi)" & ASCII.LF &
+        "movb $$0x0F, 9(%edi)" & ASCII.LF &
+        "movb $$'L', 10(%edi)" & ASCII.LF &
+        "movb $$0x0F, 11(%edi)",
+        Volatile => True
+      );
+   end Kernel_VGA_Test;
+
+   -- =======================================
    -- HOLOGRAPHIC MEMORY MANAGER (COMPLETE)
    -- =======================================
    HOLO_BASE : constant := 16#A0000#;
@@ -444,6 +468,10 @@ package body EmergeOS is
 
    procedure EmergeOS is
    begin
+      -- IMMEDIATE KERNEL VGA TEST - FIRST INSTRUCTION (VIDEO FIX)
+      Kernel_VGA_Test;
+
+      -- THEN PROCEED WITH EXISTING CODE (UNCHANGED)
       Initialize_Console;
       Initialize_Holo_Memory;
       Initialize_Entities;
