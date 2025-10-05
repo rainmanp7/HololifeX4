@@ -1,5 +1,6 @@
 -- boot.adb: Pure Ada Bootloader - FIXED VGA OUTPUT
 with System.Storage_Elements;
+with System.Machine_Code;
 with EmergeOS;
 
 procedure Boot is
@@ -7,17 +8,18 @@ procedure Boot is
 
    -- VGA memory address
    VGA_MEMORY : constant := 16#B8000#;
-   
+
    Console_Row : Natural := 0;
    Console_Col : Natural := 0;
 
    -- DIRECT MEMORY ACCESS - No pragma Import
-   procedure Write_To_VGA(Row, Col : Natural; Char : Character; Attr : Byte) is
+   procedure Write_To_VGA (Row, Col : Natural; Char : Character; Attr : Byte) is
    begin
       -- Calculate position in VGA buffer
       declare
          Position : constant Natural := Row * 80 + Col;
-         VGA_Ptr : System.Address := System.Storage_Elements.To_Address(VGA_MEMORY + Position * 2);
+         VGA_Ptr : System.Address := 
+           System.Storage_Elements.To_Address(VGA_MEMORY + Position * 2);
       begin
          -- Write character directly to memory
          System.Machine_Code.Asm(
@@ -33,7 +35,7 @@ procedure Boot is
       end;
    end Write_To_VGA;
 
-   function Make_Color(FG, BG : Natural) return Byte is
+   function Make_Color (FG, BG : Natural) return Byte is
    begin
       return Byte(FG) or (Byte(BG) * 16);
    end Make_Color;
@@ -50,7 +52,7 @@ procedure Boot is
       Console_Col := 0;
    end Console_Clear;
 
-   procedure Console_Put_Char(C : Character) is
+   procedure Console_Put_Char (C : Character) is
       Color : constant Byte := Make_Color(15, 0); -- White on black
    begin
       if C = ASCII.LF then
@@ -74,7 +76,7 @@ procedure Boot is
       end if;
    end Console_Put_Char;
 
-   procedure Console_Put_String(S : String) is
+   procedure Console_Put_String (S : String) is
    begin
       for I in S'Range loop
          Console_Put_Char(S(I));
@@ -102,7 +104,7 @@ begin
    -- If kernel returns, halt
    Console_Put_String("System: Kernel returned - halting");
    Console_New_Line;
-   
+
    loop
       null;
    end loop;
