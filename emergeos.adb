@@ -104,6 +104,42 @@ package body EmergeOS is
    end Console_New_Line;
 
    -- =======================================
+   -- SERIAL PORT INITIALIZATION (PROTOCOL FIX)
+   -- =======================================
+   procedure Serial_Init is
+   begin
+      -- Disable interrupts
+      Asm ("outb %0, $0x3F9",
+           Inputs => (Byte'Asm_Input ("a", 0)),
+           Volatile => True);
+      
+      -- Enable DLAB (Divisor Latch Access Bit)
+      Asm ("outb %0, $0x3FB", 
+           Inputs => (Byte'Asm_Input ("a", 16#80#)),
+           Volatile => True);
+      
+      -- Set divisor to 3 (lo byte) for 38400 baud
+      Asm ("outb %0, $0x3F8",
+           Inputs => (Byte'Asm_Input ("a", 3)),
+           Volatile => True);
+      
+      -- Set divisor (hi byte)
+      Asm ("outb %0, $0x3F9",
+           Inputs => (Byte'Asm_Input ("a", 0)),
+           Volatile => True);
+      
+      -- 8 bits, no parity, one stop bit
+      Asm ("outb %0, $0x3FB",
+           Inputs => (Byte'Asm_Input ("a", 16#03#)),
+           Volatile => True);
+      
+      -- Enable FIFO, clear them, with 14-byte threshold
+      Asm ("outb %0, $0x3FA",
+           Inputs => (Byte'Asm_Input ("a", 16#C7#)),
+           Volatile => True);
+   end Serial_Init;
+
+   -- =======================================
    -- SERIAL OUTPUT FOR QEMU CAPTURE (PROTOCOL ADDITION)
    -- =======================================
    procedure Serial_Put_Char (C : Character) is
@@ -461,6 +497,9 @@ package body EmergeOS is
    begin
       -- IMMEDIATE KERNEL VGA TEST - FIRST INSTRUCTION (VIDEO FIX)
       Kernel_VGA_Test;
+
+      -- *** PROTOCOL FIX: Initialize serial port before any output ***
+      Serial_Init;
 
       -- THEN PROCEED WITH EXISTING CODE (UNCHANGED)
       Initialize_Console;
