@@ -1,5 +1,5 @@
 [BITS 16]
-[ORG 0x7C00]
+; REMOVED: [ORG 0x7C00] - ELF doesn't support ORG directive
 
 ; HoloXlife Pure Ada OS Bootloader - Assembly Version
 ; Direct kernel loading and execution
