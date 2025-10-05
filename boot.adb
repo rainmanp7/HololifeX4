@@ -41,20 +41,21 @@ procedure Boot is
       declare
          Position : constant Natural := Row * 80 + Col;
          -- PROTOCOL FIX: Type-safe address calculation
-         VGA_Ptr : System.Address := 
-           System.Storage_Elements.To_Address(
-             System.Storage_Elements.Integer_Address(VGA_MEMORY) + 
-             System.Storage_Elements.Integer_Address(Position) * 2
-           );
+         VGA_Address : constant System.Storage_Elements.Integer_Address :=
+           System.Storage_Elements.Integer_Address(VGA_MEMORY) + 
+           System.Storage_Elements.Integer_Address(Position) * 2;
       begin
+         -- PROTOCOL FIX: Use Integer_Address instead of System.Address for assembly
          System.Machine_Code.Asm(
-           "movb %0, (%1)" & ASCII.LF &
-           "movb %2, 1(%1)",
+           "movl %1, %%edi" & ASCII.LF &
+           "movb %0, (%%edi)" & ASCII.LF &
+           "movb %2, 1(%%edi)",
            Inputs => (
              Byte'Asm_Input("r", Character'Pos(Char)),
-             System.Address'Asm_Input("r", VGA_Ptr),
+             System.Storage_Elements.Integer_Address'Asm_Input("r", VGA_Address),
              Byte'Asm_Input("r", Attr)
            ),
+           Clobber => "edi",
            Volatile => True
          );
       end;
