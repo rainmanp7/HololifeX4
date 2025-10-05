@@ -1,11 +1,11 @@
--- hardware_entity.ads: Hardware Reality Anchor
+-- hardware_entity.ads: Hardware Reality Anchor - UNIFIED TYPE SYSTEM
 -- Bare-metal compatible implementation
 with Pulse_Types; use Pulse_Types;
 
 package Hardware_Entity is
    
    type Hardware_Anchor is record
-      Base : Pulse_Types.Entity_Record;
+      Base : Pulse_Types.Entity_Record;  -- Now uses unified type
       Memory_Validated : Boolean;
       Devices_Detected : Natural;
       Resource_Coherence : Natural;
