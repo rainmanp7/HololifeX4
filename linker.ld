@@ -1,5 +1,5 @@
-/* HoloXlife Pure Ada OS Linker Script - Corrected Entry */
-ENTRY(_ada_boot)
+/* HoloXlife Pure Ada OS Linker Script - EmergeOS Entry */
+ENTRY(_ada_emergeos__emergeos)
 
 SECTIONS
 {
@@ -26,4 +26,4 @@ SECTIONS
     }
 }
 
-_start = _ada_boot;
+_start = _ada_emergeos__emergeos;
