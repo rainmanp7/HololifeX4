@@ -1,8 +1,8 @@
 [BITS 16]
 [ORG 0x7C00]
 
-; HoloXlife Pure Ada OS Bootloader
-; This is the minimal 16-bit assembly entry point that calls Ada code
+; HoloXlife Pure Ada OS Bootloader - Assembly Version
+; Direct kernel loading and execution
 
 start:
     ; Initialize segments
@@ -16,6 +16,10 @@ start:
     ; Set up video mode (80x25 color text)
     mov ax, 0x0003
     int 0x10
+
+    ; Display boot message
+    mov si, boot_msg
+    call print_string
 
     ; Load kernel sectors
     mov ah, 0x02       ; Read sectors function
@@ -53,7 +57,8 @@ print_string:
 .done:
     ret
 
-disk_error_msg db "Disk read error!", 0
+boot_msg db "HoloXlife OS Booting...", 13, 10, 0
+disk_error_msg db "Disk Error!", 0
 
 ; GDT (Global Descriptor Table)
 gdt_start:
@@ -95,16 +100,15 @@ protected_mode:
     mov ss, ax
     mov esp, 0x90000  ; Set up stack
 
-    ; FIXED: Call Ada entry point directly (mangled name for Boot procedure)
-    extern _ada_boot
-    call _ada_boot     ; Call Ada boot procedure
+    ; Call kernel directly at loaded address
+    call 0x8000
 
-    ; If Ada code returns, halt
+    ; If kernel returns, halt
     hlt
 
 ; Define default kernel sectors if not provided
 %ifndef HOLOGRAPHIC_KERNEL_SECTORS
-    %define HOLOGRAPHIC_KERNEL_SECTORS 10
+    %define HOLOGRAPHIC_KERNEL_SECTORS 24
 %endif
 
 ; Pad to 510 bytes and add boot signature
