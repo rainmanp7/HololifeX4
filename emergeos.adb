@@ -103,6 +103,38 @@ package body EmergeOS is
    end Console_New_Line;
 
    -- =======================================
+   -- SERIAL OUTPUT FOR QEMU CAPTURE (PROTOCOL ADDITION)
+   -- =======================================
+   procedure Serial_Put_Char (C : Character) is
+   begin
+      -- Output to COM1 serial port (0x3F8) for QEMU capture
+      -- This uses inline assembly for port I/O
+      Asm ("outb %0, $0x3F8",
+           Inputs => (Byte'Asm_Input ("a", Character'Pos(C))),
+           Volatile => True);
+   end Serial_Put_Char;
+
+   procedure Serial_Put_String (S : String) is
+   begin
+      for I in S'Range loop
+         Serial_Put_Char (S(I));
+      end loop;
+   end Serial_Put_String;
+
+   -- Enhanced console output that also writes to serial
+   procedure Enhanced_Put_String (S : String) is
+   begin
+      Console_Put_String(S);
+      Serial_Put_String(S);
+   end Enhanced_Put_String;
+
+   procedure Enhanced_New_Line is
+   begin
+      Console_New_Line;
+      Serial_Put_Char(ASCII.LF);
+   end Enhanced_New_Line;
+
+   -- =======================================
    -- HOLOGRAPHIC MEMORY MANAGER (COMPLETE)
    -- =======================================
    HOLO_BASE : constant := 16#A0000#;
@@ -176,6 +208,15 @@ package body EmergeOS is
       Console_Put_Char (Character'Val(Character'Pos('0') + (N mod 10)));
    end Put_Natural;
 
+   -- Enhanced version for serial output
+   procedure Enhanced_Put_Natural (N : Natural) is
+   begin
+      if N > 9 then
+         Enhanced_Put_Natural (N / 10);
+      end if;
+      Enhanced_Put_String(String'(1 => Character'Val(Character'Pos('0') + (N mod 10))));
+   end Enhanced_Put_Natural;
+
    -- =============================
    -- ENTITY MANAGEMENT (COMPLETE)
    -- =============================
@@ -240,18 +281,18 @@ package body EmergeOS is
       Pulse_Sync.Add_Entity(Pulse_Network, Hardware_Anchor.Base);
       Pulse_Sync.Add_Entity(Pulse_Network, Temporal_Anchor.Base);
       
-      Console_New_Line;
-      Console_Put_String(">>> PHASE 3: ENHANCED PULSE NETWORK <<<");
-      Console_New_Line;
-      Console_Put_String("- Hardware Entity: Natural Freq=3, Coupling=8");
-      Console_New_Line;
-      Console_Put_String("- Temporal Entity: Natural Freq=6, Coupling=9");
-      Console_New_Line;
-      Console_Put_String("- Firefly Synchronization: ACTIVE");
-      Console_New_Line;
-      Console_Put_String("- Pulse Coupling: ENABLED");
-      Console_New_Line;
-      Console_New_Line;
+      Enhanced_New_Line;
+      Enhanced_Put_String(">>> PHASE 3: ENHANCED PULSE NETWORK <<<");
+      Enhanced_New_Line;
+      Enhanced_Put_String("- Hardware Entity: Natural Freq=3, Coupling=8");
+      Enhanced_New_Line;
+      Enhanced_Put_String("- Temporal Entity: Natural Freq=6, Coupling=9");
+      Enhanced_New_Line;
+      Enhanced_Put_String("- Firefly Synchronization: ACTIVE");
+      Enhanced_New_Line;
+      Enhanced_Put_String("- Pulse Coupling: ENABLED");
+      Enhanced_New_Line;
+      Enhanced_New_Line;
    end Initialize_Enhanced_Pulse_Network;
 
    procedure Evolve_Specialized_Entities is
@@ -278,10 +319,10 @@ package body EmergeOS is
       
       -- Process flashes if any detected
       if Flash_Count > 0 then
-         Console_Put_String("⚡ PULSE NETWORK FLASH: ");
-         Put_Natural(Flash_Count);
-         Console_Put_String(" entities flashing");
-         Console_New_Line;
+         Enhanced_Put_String("⚡ PULSE NETWORK FLASH: ");
+         Enhanced_Put_Natural(Flash_Count);
+         Enhanced_Put_String(" entities flashing");
+         Enhanced_New_Line;
          
          -- Display domain-specific insights for each flasher
          for I in 1 .. Flash_Count loop
@@ -289,30 +330,30 @@ package body EmergeOS is
             if I <= Flashing_Entities'Last then
                case Flashing_Entities(I).ID is
                   when ENTITY_HARDWARE =>
-                     Console_Put_String("  🔧 HARDWARE: Memory_Valid=");
+                     Enhanced_Put_String("  🔧 HARDWARE: Memory_Valid=");
                      -- PROTOCOL FIX: Correct character conversion
-                     Console_Put_Char(Character'Val(Character'Pos('0') + Boolean'Pos(Hardware_Anchor.Memory_Validated)));
-                     Console_Put_String(" Devices=");
-                     Put_Natural(Hardware_Anchor.Devices_Detected);
-                     Console_Put_String(" Coherence=");
-                     Put_Natural(Hardware_Anchor.Resource_Coherence);
-                     Console_Put_String("%");
+                     Enhanced_Put_String(if Hardware_Anchor.Memory_Validated then "1" else "0");
+                     Enhanced_Put_String(" Devices=");
+                     Enhanced_Put_Natural(Hardware_Anchor.Devices_Detected);
+                     Enhanced_Put_String(" Coherence=");
+                     Enhanced_Put_Natural(Hardware_Anchor.Resource_Coherence);
+                     Enhanced_Put_String("%");
                      
                   when ENTITY_TEMPORAL =>
-                     Console_Put_String("  ⏰ TEMPORAL: Timing=");
-                     Put_Natural(Temporal_Entity.Calculate_System_Timing);
-                     Console_Put_String(" Patterns=");
+                     Enhanced_Put_String("  ⏰ TEMPORAL: Timing=");
+                     Enhanced_Put_Natural(Temporal_Entity.Calculate_System_Timing);
+                     Enhanced_Put_String(" Patterns=");
                      -- PROTOCOL FIX: Use hardcoded value to avoid conversion issues
-                     Put_Natural(3);  -- Placeholder for pattern analysis
-                     Console_Put_String(" Optimizations=");
-                     Put_Natural(Temporal_Entity.Generate_Timing_Optimization);
+                     Enhanced_Put_Natural(3);  -- Placeholder for pattern analysis
+                     Enhanced_Put_String(" Optimizations=");
+                     Enhanced_Put_Natural(Temporal_Entity.Generate_Timing_Optimization);
                      
                   when others =>
-                     Console_Put_String("  🌟 UNKNOWN: ID=");
+                     Enhanced_Put_String("  🌟 UNKNOWN: ID=");
                      -- PROTOCOL FIX: Correct enum to natural conversion
-                     Put_Natural(Entity_ID'Pos(Flashing_Entities(I).ID));
+                     Enhanced_Put_Natural(Entity_ID'Pos(Flashing_Entities(I).ID));
                end case;
-               Console_New_Line;
+               Enhanced_New_Line;
             end if;
          end loop;
          
@@ -352,17 +393,17 @@ package body EmergeOS is
       
       if Has_Consensus then
          Last_Consensus_Cycle := Cycle_Count;
-         Console_Put_String("🎯 NETWORK CONSENSUS: All entities synchronized!");
-         Console_New_Line;
-         Console_Put_String("   Phase Coherence: ");
-         Put_Natural(Pulse_Sync.Calculate_Phase_Coherence(Pulse_Network));
-         Console_Put_String("%");
-         Console_New_Line;
+         Enhanced_Put_String("🎯 NETWORK CONSENSUS: All entities synchronized!");
+         Enhanced_New_Line;
+         Enhanced_Put_String("   Phase Coherence: ");
+         Enhanced_Put_Natural(Pulse_Sync.Calculate_Phase_Coherence(Pulse_Network));
+         Enhanced_Put_String("%");
+         Enhanced_New_Line;
          
          -- Optional: Reset network after consensus achievement
          if Total_Flashes > 10 then
-            Console_Put_String("   🔄 Network reset for new synchronization cycle");
-            Console_New_Line;
+            Enhanced_Put_String("   🔄 Network reset for new synchronization cycle");
+            Enhanced_New_Line;
             Pulse_Sync.Reset_Network_Phases(Pulse_Network);
             Hardware_Anchor.Base.Phase := 200;  -- Partial reset
             Temporal_Anchor.Base.Phase := 100;  -- Staggered restart
@@ -381,26 +422,26 @@ package body EmergeOS is
       
       -- Display status every 10 cycles
       if Cycle_Count mod 10 = 0 then
-         Console_Put_String("📊 Network Status - Cycle ");
-         Put_Natural(Cycle_Count);
-         Console_Put_String(": Coherence=");
-         Put_Natural(Network_Coherence);
-         Console_Put_String("% Flashes=");
-         Put_Natural(Total_Flashes);
-         Console_Put_String(" Active=");
-         Put_Natural(Pulse_Sync.Get_Active_Entity_Count(Pulse_Network));
-         Console_New_Line;
+         Enhanced_Put_String("📊 Network Status - Cycle ");
+         Enhanced_Put_Natural(Cycle_Count);
+         Enhanced_Put_String(": Coherence=");
+         Enhanced_Put_Natural(Network_Coherence);
+         Enhanced_Put_String("% Flashes=");
+         Enhanced_Put_Natural(Total_Flashes);
+         Enhanced_Put_String(" Active=");
+         Enhanced_Put_Natural(Pulse_Sync.Get_Active_Entity_Count(Pulse_Network));
+         Enhanced_New_Line;
          
          -- Display entity phases
-         Console_Put_String("   Hardware: Phase=");
-         Put_Natural(Natural(Hardware_Anchor.Base.Phase));
-         Console_Put_String("/");
-         Put_Natural(Natural(PHASE_THRESHOLD));
-         Console_Put_String(" Temporal: Phase=");
-         Put_Natural(Natural(Temporal_Anchor.Base.Phase));
-         Console_Put_String("/");
-         Put_Natural(Natural(PHASE_THRESHOLD));
-         Console_New_Line;
+         Enhanced_Put_String("   Hardware: Phase=");
+         Enhanced_Put_Natural(Natural(Hardware_Anchor.Base.Phase));
+         Enhanced_Put_String("/");
+         Enhanced_Put_Natural(Natural(PHASE_THRESHOLD));
+         Enhanced_Put_String(" Temporal: Phase=");
+         Enhanced_Put_Natural(Natural(Temporal_Anchor.Base.Phase));
+         Enhanced_Put_String("/");
+         Enhanced_Put_Natural(Natural(PHASE_THRESHOLD));
+         Enhanced_New_Line;
       end if;
    end Display_Network_Status;
 
@@ -428,40 +469,48 @@ package body EmergeOS is
       Initialize_Entities;
       Console_Clear;
       
-      Console_Put_String ("HoloXlife OS - Protocol Step 7");
-      Console_New_Line;
-      Console_Put_String ("Enhanced Pulse Synchronization");
-      Console_New_Line;
-      Console_Put_String ("Hardware + Temporal Entities Active");
-      Console_New_Line;
-      Console_Put_String ("=============================================");
-      Console_New_Line;
-      Console_New_Line;
+      -- PROTOCOL ENHANCEMENT: SERIAL OUTPUT FOR QEMU
+      Serial_Put_String("=== HOLOXLIFE OS BOOTING ===" & ASCII.LF);
+      Serial_Put_String("HoloXlife OS - Protocol Step 7" & ASCII.LF);
+      Serial_Put_String("Enhanced Pulse Synchronization" & ASCII.LF);
+      Serial_Put_String("Hardware + Temporal Entities Active" & ASCII.LF);
+      Serial_Put_String("Serial Output: QEMU Capture Enabled" & ASCII.LF);
+      Serial_Put_String("=============================================" & ASCII.LF & ASCII.LF);
+      
+      Enhanced_Put_String ("HoloXlife OS - Protocol Step 7");
+      Enhanced_New_Line;
+      Enhanced_Put_String ("Enhanced Pulse Synchronization");
+      Enhanced_New_Line;
+      Enhanced_Put_String ("Hardware + Temporal Entities Active");
+      Enhanced_New_Line;
+      Enhanced_Put_String ("=============================================");
+      Enhanced_New_Line;
+      Enhanced_New_Line;
 
-      Console_Put_String ("Initializing Enhanced Pulse Network...");
-      Console_New_Line;
+      Enhanced_Put_String ("Initializing Enhanced Pulse Network...");
+      Enhanced_New_Line;
       Initialize_Enhanced_Pulse_Network;
 
-      Console_Put_String ("Initializing Holographic Memory...");
-      Console_New_Line;
+      Enhanced_Put_String ("Initializing Holographic Memory...");
+      Enhanced_New_Line;
       Holo_Memory_Init;
-      Console_Put_String ("- 512x512 Matrix: OPERATIONAL");
-      Console_New_Line;
-      Console_New_Line;
+      Enhanced_Put_String ("- 512x512 Matrix: OPERATIONAL");
+      Enhanced_New_Line;
+      Enhanced_New_Line;
 
-      Console_Put_String ("=============================================");
-      Console_New_Line;
-      Console_Put_String ("PHASE 3: FIREFLY SYNCHRONIZATION ACTIVE");
-      Console_New_Line;
-      Console_Put_String ("Hardware Entity (Freq=3) + Temporal Entity (Freq=6)");
-      Console_New_Line;
-      Console_Put_String ("Pulse Coupling: Entities influence each other's phases");
-      Console_New_Line;
-      Console_Put_String ("Emergent Synchrony: Natural consensus formation");
-      Console_New_Line;
-      Console_Put_String ("=============================================");
-      Console_New_Line;
-      Console_New_Line;
+      Enhanced_Put_String ("=============================================");
+      Enhanced_New_Line;
+      Enhanced_Put_String ("PHASE 3: FIREFLY SYNCHRONIZATION ACTIVE");
+      Enhanced_New_Line;
+      Enhanced_Put_String ("Hardware Entity (Freq=3) + Temporal Entity (Freq=6)");
+      Enhanced_New_Line;
+      Enhanced_Put_String ("Pulse Coupling: Entities influence each other's phases");
+      Enhanced_New_Line;
+      Enhanced_Put_String ("Emergent Synchrony: Natural consensus formation");
+      Enhanced_New_Line;
+      Enhanced_Put_String ("=============================================");
+      Enhanced_New_Line;
+      Enhanced_New_Line;
 
       -- Enhanced pulse synchronization main loop
       loop
@@ -471,34 +520,34 @@ package body EmergeOS is
          exit when Cycle_Count >= 100 or Total_Flashes >= 15;
       end loop;
 
-      Console_New_Line;
-      Console_Put_String ("=============================================");
-      Console_New_Line;
-      Console_Put_String ("PHASE 3 COMPLETE: FIREFLY SYNCHRONIZATION DEMONSTRATED");
-      Console_New_Line;
-      Console_Put_String ("Total Cycles: ");
-      Put_Natural(Cycle_Count);
-      Console_New_Line;
-      Console_Put_String ("Total Flashes: ");
-      Put_Natural(Total_Flashes);
-      Console_New_Line;
-      Console_Put_String ("Final Coherence: ");
-      Put_Natural(Network_Coherence);
-      Console_Put_String ("%");
-      Console_New_Line;
-      Console_Put_String ("Consensus Events: ");
+      Enhanced_New_Line;
+      Enhanced_Put_String ("=============================================");
+      Enhanced_New_Line;
+      Enhanced_Put_String ("PHASE 3 COMPLETE: FIREFLY SYNCHRONIZATION DEMONSTRATED");
+      Enhanced_New_Line;
+      Enhanced_Put_String ("Total Cycles: ");
+      Enhanced_Put_Natural(Cycle_Count);
+      Enhanced_New_Line;
+      Enhanced_Put_String ("Total Flashes: ");
+      Enhanced_Put_Natural(Total_Flashes);
+      Enhanced_New_Line;
+      Enhanced_Put_String ("Final Coherence: ");
+      Enhanced_Put_Natural(Network_Coherence);
+      Enhanced_Put_String ("%");
+      Enhanced_New_Line;
+      Enhanced_Put_String ("Consensus Events: ");
       if Last_Consensus_Cycle > 0 then
-         Put_Natural(Last_Consensus_Cycle);
+         Enhanced_Put_Natural(Last_Consensus_Cycle);
       else
-         Console_Put_String("None");
+         Enhanced_Put_String("None");
       end if;
-      Console_New_Line;
-      Console_Put_String ("=============================================");
-      Console_New_Line;
-      Console_Put_String ("Ready for Phase 4: Advanced Synchronization & Domain Integration");
-      Console_New_Line;
-      Console_Put_String ("=============================================");
-      Console_New_Line;
+      Enhanced_New_Line;
+      Enhanced_Put_String ("=============================================");
+      Enhanced_New_Line;
+      Enhanced_Put_String ("Ready for Phase 4: Advanced Synchronization & Domain Integration");
+      Enhanced_New_Line;
+      Enhanced_Put_String ("=============================================");
+      Enhanced_New_Line;
 
       loop
          null;
