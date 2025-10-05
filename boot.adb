@@ -1,10 +1,7 @@
--- boot.adb: Pure Ada Bootloader - PROTOCOL-VERIFIED VGA OUTPUT
+-- boot.adb: Pure Ada Bootloader - SIMPLIFIED VGA OUTPUT
 with System.Storage_Elements;
 with System.Machine_Code;
 with EmergeOS;
-
--- PROTOCOL FIX: Minimal visibility clause for type-safe memory arithmetic
-use type System.Storage_Elements.Integer_Address;
 
 procedure Boot is
    type Byte is mod 2**8;
@@ -15,50 +12,46 @@ procedure Boot is
    Console_Row : Natural := 0;
    Console_Col : Natural := 0;
 
-   -- PROTOCOL ENHANCEMENT: Immediate VGA test before any elaboration
+   -- IMMEDIATE VGA TEST PATTERN - FIRST EXECUTION
    procedure Immediate_VGA_Test is
    begin
       -- Direct assembly write to VGA memory (protocol: immediate hardware access)
       System.Machine_Code.Asm(
-        "movl $$0xB8000, %edi" & ASCII.LF &
-        "movb $$'H', (%edi)" & ASCII.LF &
-        "movb $$0x0F, 1(%edi)" & ASCII.LF &
-        "movb $$'Y', 2(%edi)" & ASCII.LF &
-        "movb $$0x0F, 3(%edi)" & ASCII.LF &
-        "movb $$'P', 4(%edi)" & ASCII.LF &
-        "movb $$0x0F, 5(%edi)" & ASCII.LF &
-        "movb $$'E', 6(%edi)" & ASCII.LF &
-        "movb $$0x0F, 7(%edi)" & ASCII.LF &
-        "movb $$'R', 8(%edi)" & ASCII.LF &
-        "movb $$0x0F, 9(%edi)",
-        Volatile => True
+        "movl $$0xB8000, %%edi" & ASCII.LF &
+        "movb $$'H', (%%edi)" & ASCII.LF &
+        "movb $$0x0F, 1(%%edi)" & ASCII.LF &
+        "movb $$'Y', 2(%%edi)" & ASCII.LF &
+        "movb $$0x0F, 3(%%edi)" & ASCII.LF &
+        "movb $$'P', 4(%%edi)" & ASCII.LF &
+        "movb $$0x0F, 5(%%edi)" & ASCII.LF &
+        "movb $$'E', 6(%%edi)" & ASCII.LF &
+        "movb $$0x0F, 7(%%edi)" & ASCII.LF &
+        "movb $$'R', 8(%%edi)" & ASCII.LF &
+        "movb $$0x0F, 9(%%edi)",
+        Volatile => True,
+        Clobber => "edi"
       );
    end Immediate_VGA_Test;
 
-   -- PROTOCOL: Maintain existing console system (working code preserved)
+   -- SIMPLIFIED: Direct memory calculation without complex assembly
    procedure Write_To_VGA (Row, Col : Natural; Char : Character; Attr : Byte) is
+      Position : constant Natural := Row * 80 + Col;
+      VGA_Offset : constant Natural := VGA_MEMORY + Position * 2;
    begin
-      declare
-         Position : constant Natural := Row * 80 + Col;
-         -- PROTOCOL FIX: Type-safe address calculation
-         VGA_Address : constant System.Storage_Elements.Integer_Address :=
-           System.Storage_Elements.Integer_Address(VGA_MEMORY) + 
-           System.Storage_Elements.Integer_Address(Position) * 2;
-      begin
-         -- PROTOCOL FIX: Use Integer_Address instead of System.Address for assembly
-         System.Machine_Code.Asm(
-           "movl %1, %%edi" & ASCII.LF &
-           "movb %0, (%%edi)" & ASCII.LF &
-           "movb %2, 1(%%edi)",
-           Inputs => (
-             Byte'Asm_Input("r", Character'Pos(Char)),
-             System.Storage_Elements.Integer_Address'Asm_Input("r", VGA_Address),
-             Byte'Asm_Input("r", Attr)
-           ),
-           Clobber => "edi",
-           Volatile => True
-         );
-      end;
+      -- Direct memory write using simple assembly
+      System.Machine_Code.Asm(
+        "movb %0, %1" & ASCII.LF &
+        "movb %2, %3",
+        Inputs => (
+          Byte'Asm_Input("r", Character'Pos(Char)),
+          System.Storage_Elements.Integer_Address'Asm_Input("m", 
+            System.Storage_Elements.To_Integer(System.Storage_Elements.To_Address(VGA_Offset))),
+          Byte'Asm_Input("r", Attr),
+          System.Storage_Elements.Integer_Address'Asm_Input("m", 
+            System.Storage_Elements.To_Integer(System.Storage_Elements.To_Address(VGA_Offset + 1)))
+        ),
+        Volatile => True
+      );
    end Write_To_VGA;
 
    function Make_Color (FG, BG : Natural) return Byte is
@@ -67,7 +60,7 @@ procedure Boot is
    end Make_Color;
 
    procedure Console_Clear is
-      Color : constant Byte := Make_Color(15, 0);
+      Color : constant Byte := Make_Color(15, 0); -- White on black
    begin
       for Row in 0 .. 24 loop
          for Col in 0 .. 79 loop
@@ -79,7 +72,7 @@ procedure Boot is
    end Console_Clear;
 
    procedure Console_Put_Char (C : Character) is
-      Color : constant Byte := Make_Color(15, 0);
+      Color : constant Byte := Make_Color(15, 0); -- White on black
    begin
       if C = ASCII.LF then
          Console_Col := 0;
@@ -115,10 +108,10 @@ procedure Boot is
    end Console_New_Line;
 
 begin
-   -- PROTOCOL: Immediate VGA output (matches C system timing)
+   -- IMMEDIATE VGA TEST - FIRST INSTRUCTION (VIDEO FIX)
    Immediate_VGA_Test;
 
-   -- PROTOCOL: Preserve all working systems (unchanged)
+   -- THEN PROCEED WITH EXISTING CODE (UNCHANGED)
    Console_Clear;
    Console_Put_String("HoloXlife OS v1.0 - Pure Ada Implementation");
    Console_New_Line;
@@ -127,9 +120,10 @@ begin
    Console_Put_String("System: Starting kernel...");
    Console_New_Line;
 
-   -- PROTOCOL: Maintain entity system call
+   -- Call the main kernel procedure
    EmergeOS.EmergeOS;
 
+   -- If kernel returns, halt
    Console_Put_String("System: Kernel returned - halting");
    Console_New_Line;
 
