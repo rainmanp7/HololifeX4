@@ -2,10 +2,10 @@
 -- Complete integration with Hardware + Temporal entities and firefly coupling
 with System;
 with System.Storage_Elements;
-with Pulse_Types; use Pulse_Types;
-with Pulse_Sync; use Pulse_Sync;
-with Hardware_Entity; use Hardware_Entity;
-with Temporal_Entity; use Temporal_Entity;
+with Pulse_Types; 
+with Pulse_Sync; 
+with Hardware_Entity; 
+with Temporal_Entity;
 with System.Machine_Code; use System.Machine_Code;
 
 package body EmergeOS is
@@ -201,14 +201,6 @@ package body EmergeOS is
       return 0;
    end Holo_Allocate;
 
-   procedure Put_Natural (N : Natural) is
-   begin
-      if N > 9 then
-         Put_Natural (N / 10);
-      end if;
-      Console_Put_Char (Character'Val(Character'Pos('0') + (N mod 10)));
-   end Put_Natural;
-
    -- Enhanced version for serial output
    procedure Enhanced_Put_Natural (N : Natural) is
    begin
@@ -219,7 +211,7 @@ package body EmergeOS is
    end Enhanced_Put_Natural;
 
    -- =============================
-   -- ENTITY MANAGEMENT (COMPLETE)
+   -- ENTITY MANAGEMENT (SIMPLIFIED)
    -- =============================
    type Entity_Type is (Entity_CPU, Entity_Memory, Entity_Device, Entity_Filesystem);
    type Entity_Status is (Active);
@@ -237,27 +229,14 @@ package body EmergeOS is
    Entity_Count : Natural := 0;
    
    pragma Unreferenced (Entity_Table);
+   pragma Unreferenced (Entity_Type);
+   pragma Unreferenced (Entity_Status);
 
    procedure Initialize_Entities is
    begin
       Entity_Count := 0;
    end Initialize_Entities;
    
-   function Create_Entity (E_Type : Entity_Type) return Natural is
-   begin
-      if Entity_Count < Max_Entities then
-         Entity_Count := Entity_Count + 1;
-         Entity_Table(Entity_Count) := 
-           (Kind => E_Type,
-            ID => Entity_Count,
-            Status => Active,
-            Priority => 1,
-            Memory_Base => Holo_Allocate (64));
-         return Entity_Count;
-      end if;
-      return 0;
-   end Create_Entity;
-
    -- =============================
    -- PHASE 3: ENHANCED PULSE NETWORK
    -- =============================
