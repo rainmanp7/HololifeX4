@@ -241,8 +241,8 @@ package body EmergeOS is
    -- PHASE 3: ENHANCED PULSE NETWORK
    -- =============================
    Pulse_Network : Sync_Network;
-   Hardware_Anchor : Hardware_Anchor;
-   Temporal_Anchor : Temporal_Anchor;
+   Hardware_Entity_Instance : Hardware_Anchor;  -- FIXED: Renamed to avoid declaration conflict
+   Temporal_Entity_Instance : Temporal_Anchor;  -- FIXED: Renamed to avoid declaration conflict
    
    Cycle_Count : Natural := 0;
    Total_Flashes : Natural := 0;
@@ -254,12 +254,12 @@ package body EmergeOS is
       Initialize_Network(Pulse_Network);
       
       -- Initialize specialized entities
-      Initialize(Hardware_Anchor);
-      Initialize(Temporal_Anchor);
+      Initialize(Hardware_Entity_Instance);
+      Initialize(Temporal_Entity_Instance);
       
       -- Add to pulse network
-      Add_Entity(Pulse_Network, Hardware_Anchor.Base);
-      Add_Entity(Pulse_Network, Temporal_Anchor.Base);
+      Add_Entity(Pulse_Network, Hardware_Entity_Instance.Base);
+      Add_Entity(Pulse_Network, Temporal_Entity_Instance.Base);
       
       Enhanced_New_Line;
       Enhanced_Put_String(">>> PHASE 3: ENHANCED PULSE NETWORK <<<");
@@ -278,12 +278,12 @@ package body EmergeOS is
    procedure Evolve_Specialized_Entities is
    begin
       -- Evolve hardware entity with its domain logic
-      Evolve_Phase(Hardware_Anchor);
-      Pulse_Network.Entities(1) := Hardware_Anchor.Base;
+      Evolve_Phase(Hardware_Entity_Instance);
+      Pulse_Network.Entities(1) := Hardware_Entity_Instance.Base;
       
       -- Evolve temporal entity with its domain logic  
-      Evolve_Phase(Temporal_Anchor);
-      Pulse_Network.Entities(2) := Temporal_Anchor.Base;
+      Evolve_Phase(Temporal_Entity_Instance);
+      Pulse_Network.Entities(2) := Temporal_Entity_Instance.Base;
       
       -- Update network cycle count
       Pulse_Network.Cycle_Count := Pulse_Network.Cycle_Count + 1;
@@ -312,11 +312,11 @@ package body EmergeOS is
                   when ENTITY_HARDWARE =>
                      Enhanced_Put_String("  🔧 HARDWARE: Memory_Valid=");
                      -- PROTOCOL FIX: Correct character conversion
-                     Enhanced_Put_String(if Hardware_Anchor.Memory_Validated then "1" else "0");
+                     Enhanced_Put_String(if Hardware_Entity_Instance.Memory_Validated then "1" else "0");
                      Enhanced_Put_String(" Devices=");
-                     Enhanced_Put_Natural(Hardware_Anchor.Devices_Detected);
+                     Enhanced_Put_Natural(Hardware_Entity_Instance.Devices_Detected);
                      Enhanced_Put_String(" Coherence=");
-                     Enhanced_Put_Natural(Hardware_Anchor.Resource_Coherence);
+                     Enhanced_Put_Natural(Hardware_Entity_Instance.Resource_Coherence);
                      Enhanced_Put_String("%");
                      
                   when ENTITY_TEMPORAL =>
@@ -350,13 +350,13 @@ package body EmergeOS is
             if I <= Flashing_Entities'Last then
                case Flashing_Entities(I).ID is
                   when ENTITY_HARDWARE =>
-                     Hardware_Anchor.Base.Phase := 0;
-                     Hardware_Anchor.Base.Flash_Count := Hardware_Anchor.Base.Flash_Count + 1;
-                     Pulse_Network.Entities(1) := Hardware_Anchor.Base;
+                     Hardware_Entity_Instance.Base.Phase := 0;
+                     Hardware_Entity_Instance.Base.Flash_Count := Hardware_Entity_Instance.Base.Flash_Count + 1;
+                     Pulse_Network.Entities(1) := Hardware_Entity_Instance.Base;
                   when ENTITY_TEMPORAL =>
-                     Temporal_Anchor.Base.Phase := 0;
-                     Temporal_Anchor.Base.Flash_Count := Temporal_Anchor.Base.Flash_Count + 1;
-                     Pulse_Network.Entities(2) := Temporal_Anchor.Base;
+                     Temporal_Entity_Instance.Base.Phase := 0;
+                     Temporal_Entity_Instance.Base.Flash_Count := Temporal_Entity_Instance.Base.Flash_Count + 1;
+                     Pulse_Network.Entities(2) := Temporal_Entity_Instance.Base;
                   when others =>
                      null;
                end case;
@@ -385,10 +385,10 @@ package body EmergeOS is
             Enhanced_Put_String("   🔄 Network reset for new synchronization cycle");
             Enhanced_New_Line;
             Reset_Network_Phases(Pulse_Network);
-            Hardware_Anchor.Base.Phase := 200;  -- Partial reset
-            Temporal_Anchor.Base.Phase := 100;  -- Staggered restart
-            Pulse_Network.Entities(1) := Hardware_Anchor.Base;
-            Pulse_Network.Entities(2) := Temporal_Anchor.Base;
+            Hardware_Entity_Instance.Base.Phase := 200;  -- Partial reset
+            Temporal_Entity_Instance.Base.Phase := 100;  -- Staggered restart
+            Pulse_Network.Entities(1) := Hardware_Entity_Instance.Base;
+            Pulse_Network.Entities(2) := Temporal_Entity_Instance.Base;
          end if;
       end if;
    end Check_Network_Consensus;
@@ -414,11 +414,11 @@ package body EmergeOS is
          
          -- Display entity phases
          Enhanced_Put_String("   Hardware: Phase=");
-         Enhanced_Put_Natural(Natural(Hardware_Anchor.Base.Phase));
+         Enhanced_Put_Natural(Natural(Hardware_Entity_Instance.Base.Phase));
          Enhanced_Put_String("/");
          Enhanced_Put_Natural(Natural(PHASE_THRESHOLD));
          Enhanced_Put_String(" Temporal: Phase=");
-         Enhanced_Put_Natural(Natural(Temporal_Anchor.Base.Phase));
+         Enhanced_Put_Natural(Natural(Temporal_Entity_Instance.Base.Phase));
          Enhanced_Put_String("/");
          Enhanced_Put_Natural(Natural(PHASE_THRESHOLD));
          Enhanced_New_Line;
