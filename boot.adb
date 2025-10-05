@@ -39,8 +39,12 @@ procedure Boot is
       -- Calculate position in VGA buffer
       declare
          Position : constant Natural := Row * 80 + Col;
+         -- FIXED: Use proper Integer_Address type conversion
          VGA_Ptr : System.Address := 
-           System.Storage_Elements.To_Address(VGA_MEMORY + Position * 2);
+           System.Storage_Elements.To_Address(
+             System.Storage_Elements.Integer_Address(VGA_MEMORY) + 
+             System.Storage_Elements.Integer_Address(Position) * 2
+           );
       begin
          -- Write character directly to memory
          System.Machine_Code.Asm(
