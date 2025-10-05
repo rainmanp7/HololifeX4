@@ -1,20 +1,14 @@
--- Base Pulse-Coupled Entity - SIMPLIFIED for Phase 1
+-- pulse_entities.ads: Base Pulse-Coupled Entity - UNIFIED TYPE SYSTEM
 with Pulse_Types; use Pulse_Types;
 
 package Pulse_Entities is
    
-   type Base_Entity is record
-      ID : Entity_ID;
-      Current_Phase : Phase_Type;
-      Natural_Freq : Frequency_Type;
-      Coupling_Str : Coupling_Type;
-      Flash_Count : Natural;
-      Is_Active : Boolean;
-   end record;
+   -- USE UNIFIED TYPE: All entities now use Pulse_Types.Entity_Record
+   -- No separate Base_Entity type - semantic truth achieved
    
-   -- SIMPLIFIED: Remove abstract methods for now
-   procedure Reset_Phase (Entity : in out Base_Entity);
-   function Should_Flash (Entity : Base_Entity) return Boolean;
-   procedure Apply_Pulse (Entity : in out Base_Entity; Sender_ID : Entity_ID);
+   -- Core entity operations
+   procedure Reset_Phase (Entity : in out Entity_Record);
+   function Should_Flash (Entity : Entity_Record) return Boolean;
+   procedure Apply_Pulse (Entity : in out Entity_Record; Sender_ID : Entity_ID);
    
 end Pulse_Entities;
