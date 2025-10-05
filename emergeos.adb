@@ -6,6 +6,7 @@ with Pulse_Types; use Pulse_Types;
 with Pulse_Sync; use Pulse_Sync;
 with Hardware_Entity; use Hardware_Entity;
 with Temporal_Entity; use Temporal_Entity;
+with System.Machine_Code; use System.Machine_Code;
 
 package body EmergeOS is
 
