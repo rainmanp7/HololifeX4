@@ -1,30 +1,30 @@
--- Base Entity Implementation - FIXED TYPE CONVERSIONS
+-- pulse_entities.adb: Base Entity Implementation - UNIFIED TYPE SYSTEM
 package body Pulse_Entities is
 
-   procedure Reset_Phase (Entity : in out Base_Entity) is
+   procedure Reset_Phase (Entity : in out Entity_Record) is
    begin
-      Entity.Current_Phase := 0;
+      Entity.Phase := 0;
    end Reset_Phase;
 
-   function Should_Flash (Entity : Base_Entity) return Boolean is
+   function Should_Flash (Entity : Entity_Record) return Boolean is
    begin
-      return Entity.Current_Phase >= PHASE_THRESHOLD and Entity.Is_Active;
+      return Entity.Phase >= PHASE_THRESHOLD and Entity.Is_Active;
    end Should_Flash;
 
-   procedure Apply_Pulse (Entity : in out Base_Entity; Sender_ID : Entity_ID) is
+   procedure Apply_Pulse (Entity : in out Entity_Record; Sender_ID : Entity_ID) is
       Phase_Boost : Phase_Type;
    begin
-      if Entity.Current_Phase < PHASE_THRESHOLD and Entity.Is_Active then
-         -- FIXED: Explicit type conversions for multiplication
+      if Entity.Phase < PHASE_THRESHOLD and Entity.Is_Active then
+         -- FIXED: Use correct field names from Entity_Record
          Phase_Boost := Phase_Type(
-            (Natural(Entity.Current_Phase) * Natural(Entity.Coupling_Str)) / 100
+            (Natural(Entity.Phase) * Natural(Entity.Coupling)) / 100
          );
          
-         Entity.Current_Phase := Entity.Current_Phase + Phase_Boost;
+         Entity.Phase := Entity.Phase + Phase_Boost;
          
-         -- Cap at threshold
-         if Entity.Current_Phase > PHASE_THRESHOLD then
-            Entity.Current_Phase := PHASE_THRESHOLD;
+         -- Cap at threshold (FIXED: use ">" not ">=")
+         if Entity.Phase > PHASE_THRESHOLD then
+            Entity.Phase := PHASE_THRESHOLD;
          end if;
       end if;
    end Apply_Pulse;
