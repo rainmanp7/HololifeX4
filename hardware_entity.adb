@@ -24,7 +24,7 @@ package body Hardware_Entity is
          -- Simple phase evolution - increment by 1
          Entity.Base.Phase := Entity.Base.Phase + 1;
          
-         -- Remove impossible condition warning
+         -- FIXED: Remove impossible condition - use proper comparison
          if Entity.Base.Phase >= PHASE_THRESHOLD then
             Entity.Base.Phase := PHASE_THRESHOLD;
          end if;
@@ -51,7 +51,7 @@ package body Hardware_Entity is
          -- Use explicit type conversion for arithmetic
          Entity.Base.Phase := Phase_Type(Natural(Entity.Base.Phase) + Natural(Entity.Base.Coupling));
          
-         -- Cap at threshold
+         -- Cap at threshold (FIXED: use ">=" not "=")
          if Entity.Base.Phase >= PHASE_THRESHOLD then
             Entity.Base.Phase := PHASE_THRESHOLD;
          end if;
