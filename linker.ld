@@ -2,7 +2,7 @@
 ENTRY(_ada_boot)
 SECTIONS
 {
-    . = 0x10000;  /* ← CHANGED from 0x8000 */
+    . = 0x10000;
     .text : {
         *(.text._ada_boot)
         *(.text)
