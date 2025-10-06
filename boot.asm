@@ -1,46 +1,50 @@
+; HoloXlife Pure Ada OS Bootloader
+; Supports automatic padding calculation from Makefile
+
 [BITS 16]
 [ORG 0x7C00]
 
-; HoloXlife Pure Ada OS Bootloader
-; Dynamic padding version for Makefile calculation
+; HOLOGRAPHIC_KERNEL_SECTORS will be passed from Makefile
+%ifndef HOLOGRAPHIC_KERNEL_SECTORS
+    %define HOLOGRAPHIC_KERNEL_SECTORS 10  ; Default fallback
+%endif
+
+; BOOT_PADDING will be passed from Makefile on second pass
+%ifndef BOOT_PADDING
+    %define BOOT_PADDING 0  ; Default for first pass
+%endif
 
 start:
     ; Initialize segments
-    cli                 ; Clear interrupts
-    xor ax, ax         ; AX = 0
-    mov ds, ax         ; DS = 0
-    mov es, ax         ; ES = 0
-    mov ss, ax         ; SS = 0
-    mov sp, 0x7C00     ; Stack grows down from bootloader
+    xor ax, ax
+    mov ds, ax
+    mov es, ax
+    mov ss, ax
+    mov sp, 0x7C00
 
-    ; Set up video mode (80x25 color text)
-    mov ax, 0x0003
-    int 0x10
+    ; Display boot message
+    mov si, boot_msg
+    call print_string
 
-    ; Load kernel sectors
-    mov ah, 0x02       ; Read sectors function
+    ; Load kernel from disk
+    mov ah, 0x02                    ; BIOS read sector function
     mov al, HOLOGRAPHIC_KERNEL_SECTORS  ; Number of sectors to read
-    mov ch, 0          ; Cylinder 0
-    mov dh, 0          ; Head 0  
-    mov cl, 2          ; Start from sector 2 (sector 1 is boot sector)
-    mov bx, 0x8000     ; Load to 0x0000:0x8000
-    int 0x13           ; BIOS disk interrupt
-    jc disk_error      ; Jump if carry flag set (error)
+    mov ch, 0                       ; Cylinder 0
+    mov cl, 2                       ; Start from sector 2 (after boot sector)
+    mov dh, 0                       ; Head 0
+    mov dl, 0x80                    ; First hard drive (use 0x00 for floppy)
+    mov bx, 0x1000                  ; Load to 0x1000:0x0000
+    int 0x13
 
-    ; Simple GDT setup for protected mode
-    lgdt [gdt_descriptor]
-    
-    ; Enter protected mode
-    mov eax, cr0
-    or eax, 1
-    mov cr0, eax
-    
-    ; Far jump to 32-bit code segment  
-    jmp 0x08:protected_mode
+    jc disk_error                   ; Jump if carry flag set (error)
+
+    ; Jump to loaded kernel
+    jmp 0x1000:0x0000
 
 disk_error:
-    mov si, disk_error_msg
+    mov si, error_msg
     call print_string
+    cli
     hlt
 
 print_string:
@@ -53,89 +57,11 @@ print_string:
 .done:
     ret
 
-disk_error_msg db "Disk error!", 0
+boot_msg:    db 'HoloXlife OS Booting...', 13, 10, 0
+error_msg:   db 'Disk Error!', 13, 10, 0
 
-; GDT (Global Descriptor Table)
-gdt_start:
-    ; Null descriptor
-    dq 0
+; Automatic padding - calculated by Makefile
+times BOOT_PADDING db 0
 
-gdt_code:
-    ; Code segment descriptor
-    dw 0xFFFF    ; Limit (low)
-    dw 0x0000    ; Base (low)
-    db 0x00      ; Base (middle)
-    db 10011010b ; Access byte
-    db 11001111b ; Flags + limit (high)
-    db 0x00      ; Base (high)
-
-gdt_data:
-    ; Data segment descriptor  
-    dw 0xFFFF    ; Limit (low)
-    dw 0x0000    ; Base (low)
-    db 0x00      ; Base (middle)
-    db 10010010b ; Access byte
-    db 11001111b ; Flags + limit (high)
-    db 0x00      ; Base (high)
-
-gdt_end:
-
-gdt_descriptor:
-    dw gdt_end - gdt_start - 1  ; Size
-    dd gdt_start                ; Address
-
-[BITS 32]
-protected_mode:
-    ; Set up data segments
-    mov ax, 0x10    ; Data segment selector
-    mov ds, ax
-    mov es, ax
-    mov fs, ax
-    mov gs, ax
-    mov ss, ax
-    mov esp, 0x90000  ; Set up stack
-
-    ; Call Ada main procedure (linked in kernel.bin)
-    call 0x8000     ; Jump to loaded kernel
-
-    ; If Ada code returns, halt
-    hlt
-
-; Define default kernel sectors if not provided by Makefile
-%ifndef HOLOGRAPHIC_KERNEL_SECTORS
-    %define HOLOGRAPHIC_KERNEL_SECTORS 10
-%endif
-
-; ===========================================
-; DYNAMIC PADDING SECTION
-; ===========================================
-
-; Calculate current bootloader size for debugging
-bootloader_size equ ($ - $$)
-
-; Use padding calculated by Makefile (PROTOCOL: External calculation)
-%ifdef BOOT_PADDING
-    ; Makefile provides exact padding needed
-    times BOOT_PADDING db 0
-    %echo "Using Makefile-calculated padding:" BOOT_PADDING "bytes"
-%else
-    ; Fallback: standard NASM calculation
-    %warning "Using fallback padding calculation"
-    times 510-($-$$) db 0
-%endif
-
-; Sacred boot signature (required by BIOS)
+; Boot signature (must be at bytes 510-511)
 dw 0xAA55
-
-; ===========================================
-; BOOTLOADER SIZE VALIDATION
-; ===========================================
-
-; Runtime size check (assembler warning if too large)
-%if ($ - $$) > 510
-    %error "Bootloader too large! Current size:" ($ - $$) "bytes (max 510)"
-%endif
-
-%if ($ - $$) < 440
-    %warning "Bootloader has room for expansion. Current size:" ($ - $$) "bytes"
-%endif
