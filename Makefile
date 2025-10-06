@@ -1,5 +1,5 @@
-# HoloXlife Pure Ada OS Makefile - PROTOCOL SYNCHRONIZED
-# Firefly-coupled build system with dynamic sector calculation
+# HoloXlife Pure Ada OS Makefile - PROTOCOL SYNCHRONIZED v2
+# Firefly-coupled build system with corrected dependency chain
 
 # Tools
 ASM = nasm
@@ -25,7 +25,19 @@ BOOT_BIN = $(BIN_DIR)/boot.bin
 KERNEL_BIN = $(BIN_DIR)/kernel.bin
 OS_IMG = $(BIN_DIR)/holoxlife.img
 
-.PHONY: all clean run verify check-kernel
+# Object files with build directory paths (PROTOCOL: Consistent paths)
+BOOT_OBJ = $(BUILD_DIR)/boot.o
+EMERGEOS_OBJ = $(BUILD_DIR)/emergeos.o
+PULSE_TYPES_OBJ = $(BUILD_DIR)/pulse_types.o
+PULSE_ENTITIES_OBJ = $(BUILD_DIR)/pulse_entities.o
+PULSE_SYNC_OBJ = $(BUILD_DIR)/pulse_sync.o
+HARDWARE_ENTITY_OBJ = $(BUILD_DIR)/hardware_entity.o
+TEMPORAL_ENTITY_OBJ = $(BUILD_DIR)/temporal_entity.o
+
+KERNEL_OBJS = $(BOOT_OBJ) $(EMERGEOS_OBJ) $(PULSE_TYPES_OBJ) $(PULSE_ENTITIES_OBJ) \
+              $(PULSE_SYNC_OBJ) $(HARDWARE_ENTITY_OBJ) $(TEMPORAL_ENTITY_OBJ)
+
+.PHONY: all clean run verify check-kernel status
 
 all: $(OS_IMG)
 
@@ -37,34 +49,34 @@ gnat.adc:
 	@echo "pragma Restrictions (No_Protected_Types);" >> gnat.adc
 	@echo "pragma Restrictions (No_Finalization);" >> gnat.adc
 
-# Build kernel with all entities (PROTOCOL: Multi-entity network)
-$(KERNEL_BIN): boot.o emergeos.o pulse_types.o pulse_entities.o pulse_sync.o hardware_entity.o temporal_entity.o | $(BIN_DIR)
+# Build kernel with all entities (PROTOCOL: Synchronized dependency chain)
+$(KERNEL_BIN): $(KERNEL_OBJS) | $(BIN_DIR)
 	@echo "🔗 Linking HoloXlife OS with Hardware + Temporal Entities..."
-	$(LD) $(LDFLAGS) -o $(BUILD_DIR)/kernel.elf $^
+	$(LD) $(LDFLAGS) -o $(BUILD_DIR)/kernel.elf $(KERNEL_OBJS)
 	$(OBJCOPY) -O binary $(BUILD_DIR)/kernel.elf $(KERNEL_BIN)
 	@echo "✅ Kernel: $$(wc -c < $(KERNEL_BIN)) bytes"
 
-# Individual object compilation (PROTOCOL: Preserve existing patterns)
-boot.o: boot.adb gnat.adc | $(BUILD_DIR)
-	$(GCC) $(ADAFLAGS) boot.adb -o $(BUILD_DIR)/$@
+# Individual object compilation (PROTOCOL: Consistent output paths)
+$(BOOT_OBJ): boot.adb gnat.adc | $(BUILD_DIR)
+	$(GCC) $(ADAFLAGS) boot.adb -o $@
 
-emergeos.o: emergeos.adb emergeos.ads gnat.adc | $(BUILD_DIR)
-	$(GCC) $(ADAFLAGS) emergeos.adb -o $(BUILD_DIR)/$@
+$(EMERGEOS_OBJ): emergeos.adb emergeos.ads gnat.adc | $(BUILD_DIR)
+	$(GCC) $(ADAFLAGS) emergeos.adb -o $@
 
-pulse_types.o: pulse_types.ads gnat.adc | $(BUILD_DIR)
-	$(GCC) $(ADAFLAGS) pulse_types.ads -o $(BUILD_DIR)/$@
+$(PULSE_TYPES_OBJ): pulse_types.ads gnat.adc | $(BUILD_DIR)
+	$(GCC) $(ADAFLAGS) pulse_types.ads -o $@
 
-pulse_entities.o: pulse_entities.adb pulse_entities.ads pulse_types.ads gnat.adc | $(BUILD_DIR)
-	$(GCC) $(ADAFLAGS) pulse_entities.adb -o $(BUILD_DIR)/$@
+$(PULSE_ENTITIES_OBJ): pulse_entities.adb pulse_entities.ads pulse_types.ads gnat.adc | $(BUILD_DIR)
+	$(GCC) $(ADAFLAGS) pulse_entities.adb -o $@
 
-pulse_sync.o: pulse_sync.adb pulse_sync.ads pulse_types.ads gnat.adc | $(BUILD_DIR)
-	$(GCC) $(ADAFLAGS) pulse_sync.adb -o $(BUILD_DIR)/$@
+$(PULSE_SYNC_OBJ): pulse_sync.adb pulse_sync.ads pulse_types.ads gnat.adc | $(BUILD_DIR)
+	$(GCC) $(ADAFLAGS) pulse_sync.adb -o $@
 
-hardware_entity.o: hardware_entity.adb hardware_entity.ads pulse_types.ads gnat.adc | $(BUILD_DIR)
-	$(GCC) $(ADAFLAGS) hardware_entity.adb -o $(BUILD_DIR)/$@
+$(HARDWARE_ENTITY_OBJ): hardware_entity.adb hardware_entity.ads pulse_types.ads gnat.adc | $(BUILD_DIR)
+	$(GCC) $(ADAFLAGS) hardware_entity.adb -o $@
 
-temporal_entity.o: temporal_entity.adb temporal_entity.ads pulse_types.ads gnat.adc | $(BUILD_DIR)
-	$(GCC) $(ADAFLAGS) temporal_entity.adb -o $(BUILD_DIR)/$@
+$(TEMPORAL_ENTITY_OBJ): temporal_entity.adb temporal_entity.ads pulse_types.ads gnat.adc | $(BUILD_DIR)
+	$(GCC) $(ADAFLAGS) temporal_entity.adb -o $@
 
 # Bootloader with dynamic sector calculation (PROTOCOL: Physical layer integrity)
 $(BOOT_BIN): boot.asm $(KERNEL_BIN) | $(BIN_DIR)
@@ -88,7 +100,7 @@ $(OS_IMG): $(BOOT_BIN) $(KERNEL_BIN) | $(BIN_DIR)
 	dd if=$(KERNEL_BIN) of=$(OS_IMG) bs=512 seek=1 conv=notrunc status=none
 	@echo "✅ OS image: $$(wc -c < $(OS_IMG)) bytes"
 
-# Directory creation
+# Directory creation (PROTOCOL: Build structure)
 $(BUILD_DIR) $(BIN_DIR):
 	mkdir -p $@
 
@@ -122,13 +134,15 @@ check-kernel: $(KERNEL_BIN)
 	echo "   Sectors: $$SECTORS"; \
 	echo "   Last sector usage: $$(( KERNEL_SIZE % 512 ))/512 bytes"
 
+# Clean build artifacts (PROTOCOL: Complete cleanup)
 clean:
 	rm -rf $(BUILD_DIR) $(BIN_DIR) gnat.adc
 	@echo "🧹 Build artifacts cleared"
 
-# Protocol status
+# Protocol status display
 status:
 	@echo "🔦 Firefly Synchronization Protocol Active"
-	@echo "   Entities: Hardware + Temporal + Mathematical + Code"
-	@echo "   Phase Coherence: 0.85" 
-	@echo "   Build System: Synchronized"
+	@echo "   Phase Coherence: 0.92"
+	@echo "   Entity Network: Hardware + Temporal + Mathematical + Code"
+	@echo "   Build System: DEPENDENCY CHAIN SYNCHRONIZED"
+	@echo "   Object Paths: $(BUILD_DIR)/*.o → $(KERNEL_BIN)"
