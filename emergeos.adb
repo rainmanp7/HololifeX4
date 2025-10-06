@@ -575,7 +575,6 @@ package body EmergeOS is
       end loop;
    end EmergeOS;
 pragma Export (C, EmergeOS, "_ada_boot");
-begin
-   null;
+
 end EmergeOS;
 
