@@ -7,7 +7,6 @@ with Pulse_Sync; use Pulse_Sync;    -- ESSENTIAL: Network operations visibility
 with Hardware_Entity; use Hardware_Entity;  -- ESSENTIAL: Hardware entity integration
 with Temporal_Entity; use Temporal_Entity;  -- ESSENTIAL: Temporal entity integration
 with System.Machine_Code; use System.Machine_Code;
-with UART_Driver; use UART_Driver;  -- PRO UART implementation
 
 package body EmergeOS is
 
@@ -18,44 +17,337 @@ package body EmergeOS is
    pragma Unreferenced (Word);
 
    -- ================================
-   -- PRO UART SERIAL SUBSYSTEM (REPLACED)
+   -- PROFESSIONAL UART DRIVER (EMBEDDED)
    -- ================================
    
-   procedure Initialize_UART is
-      Success : Boolean;
+   -- Configuration types
+   type Baud_Rate is (
+      Baud_9600,
+      Baud_19200,
+      Baud_38400,
+      Baud_57600,
+      Baud_115200
+   );
+
+   type Data_Bits is (Bits_5, Bits_6, Bits_7, Bits_8);
+   
+   type Parity_Mode is (None, Odd, Even, Mark, Space);
+   
+   type Stop_Bits is (One, Two);
+
+   type UART_Error is (
+      No_Error,
+      Overrun_Error,
+      Parity_Error,
+      Framing_Error,
+      Break_Interrupt,
+      FIFO_Error,
+      Timeout_Error
+   );
+
+   type UART_Config is record
+      Baud       : Baud_Rate;
+      Data       : Data_Bits;
+      Parity     : Parity_Mode;
+      Stop       : Stop_Bits;
+      Enable_FIFO : Boolean;
+      RTS_CTS     : Boolean;
+   end record;
+
+   -- Default configuration: 115200 8N1 with FIFO
+   Default_Config : constant UART_Config := (
+      Baud        => Baud_115200,
+      Data        => Bits_8,
+      Parity      => None,
+      Stop        => One,
+      Enable_FIFO => True,
+      RTS_CTS     => False
+   );
+
+   -- Port selection
+   type UART_Port is (COM1, COM2, COM3, COM4);
+
+   -- UART Register offsets
+   DATA_REG          : constant := 0;
+   INT_ENABLE_REG    : constant := 1;
+   FIFO_CTRL_REG     : constant := 2;
+   LINE_CTRL_REG     : constant := 3;
+   MODEM_CTRL_REG    : constant := 4;
+   LINE_STATUS_REG   : constant := 5;
+   MODEM_STATUS_REG  : constant := 6;
+   SCRATCH_REG       : constant := 7;
+
+   -- Line Status Register bits
+   LSR_DATA_READY           : constant Byte := 2#0000_0001#;
+   LSR_OVERRUN_ERROR        : constant Byte := 2#0000_0010#;
+   LSR_PARITY_ERROR         : constant Byte := 2#0000_0100#;
+   LSR_FRAMING_ERROR        : constant Byte := 2#0000_1000#;
+   LSR_BREAK_INTERRUPT      : constant Byte := 2#0001_0000#;
+   LSR_TX_HOLDING_EMPTY     : constant Byte := 2#0010_0000#;
+   LSR_TX_EMPTY             : constant Byte := 2#0100_0000#;
+   LSR_FIFO_ERROR           : constant Byte := 2#1000_0000#;
+
+   -- Line Control Register bits
+   LCR_DLAB                 : constant Byte := 2#1000_0000#;
+   LCR_SET_BREAK            : constant Byte := 2#0100_0000#;
+   LCR_STICK_PARITY         : constant Byte := 2#0010_0000#;
+   LCR_EVEN_PARITY          : constant Byte := 2#0001_0000#;
+   LCR_ENABLE_PARITY        : constant Byte := 2#0000_1000#;
+
+   -- FIFO Control Register bits
+   FCR_ENABLE_FIFO          : constant Byte := 2#0000_0001#;
+   FCR_CLEAR_RX             : constant Byte := 2#0000_0010#;
+   FCR_CLEAR_TX             : constant Byte := 2#0000_0100#;
+   FCR_DMA_MODE             : constant Byte := 2#0000_1000#;
+   FCR_TRIGGER_14           : constant Byte := 2#1100_0000#;
+
+   -- Modem Control Register bits
+   MCR_DTR                  : constant Byte := 2#0000_0001#;
+   MCR_RTS                  : constant Byte := 2#0000_0010#;
+   MCR_OUT1                 : constant Byte := 2#0000_0100#;
+   MCR_OUT2                 : constant Byte := 2#0000_1000#;
+   MCR_LOOPBACK             : constant Byte := 2#0001_0000#;
+
+   -- Port state tracking
+   type Port_State is record
+      Base_Address  : Natural;
+      Initialized   : Boolean := False;
+      Last_Error    : UART_Error := No_Error;
+   end record;
+
+   Port_States : array (UART_Port) of Port_State := (
+      COM1 => (16#3F8#, False, No_Error),
+      COM2 => (16#2F8#, False, No_Error),
+      COM3 => (16#3E8#, False, No_Error),
+      COM4 => (16#2E8#, False, No_Error)
+   );
+
+   -- Low-level I/O operations
+   procedure Out_Byte (Port_Addr : Natural; Value : Byte) is
    begin
-      -- Initialize COM1 with professional configuration
-      Initialize(COM1, Default_Config);
-      
-      -- Perform self-test
-      Self_Test(COM1, Success);
-      
-      if Success then
-         Put_Line(COM1, "UART OK - Professional Driver Active");
+      Asm ("outb %0, %1",
+           Inputs => (
+              Byte'Asm_Input ("a", Value),
+              System.Address'Asm_Input ("Nd", System'To_Address(Port_Addr))
+           ),
+           Volatile => True);
+   end Out_Byte;
+
+   function In_Byte (Port_Addr : Natural) return Byte is
+      Result : Byte;
+   begin
+      Asm ("inb %1, %0",
+           Outputs => Byte'Asm_Output ("=a", Result),
+           Inputs => System.Address'Asm_Input ("Nd", System'To_Address(Port_Addr)),
+           Volatile => True);
+      return Result;
+   end In_Byte;
+
+   -- Get port base address
+   function Get_Base (Port : UART_Port) return Natural is
+   begin
+      return Port_States(Port).Base_Address;
+   end Get_Base;
+
+   -- Baud rate divisor calculation
+   function Get_Divisor (Rate : Baud_Rate) return Natural is
+   begin
+      case Rate is
+         when Baud_9600   => return 12;
+         when Baud_19200  => return 6;
+         when Baud_38400  => return 3;
+         when Baud_57600  => return 2;
+         when Baud_115200 => return 1;
+      end case;
+   end Get_Divisor;
+
+   -- Build Line Control Register value
+   function Build_LCR (Config : UART_Config) return Byte is
+      LCR : Byte := 0;
+   begin
+      -- Data bits
+      case Config.Data is
+         when Bits_5 => LCR := LCR or 2#00#;
+         when Bits_6 => LCR := LCR or 2#01#;
+         when Bits_7 => LCR := LCR or 2#10#;
+         when Bits_8 => LCR := LCR or 2#11#;
+      end case;
+
+      -- Stop bits
+      if Config.Stop = Two then
+         LCR := LCR or 2#0000_0100#;
+      end if;
+
+      -- Parity
+      case Config.Parity is
+         when None  => null;
+         when Odd   => LCR := LCR or LCR_ENABLE_PARITY;
+         when Even  => LCR := LCR or LCR_ENABLE_PARITY or LCR_EVEN_PARITY;
+         when Mark  => LCR := LCR or LCR_ENABLE_PARITY or LCR_STICK_PARITY;
+         when Space => LCR := LCR or LCR_ENABLE_PARITY or LCR_EVEN_PARITY or LCR_STICK_PARITY;
+      end case;
+
+      return LCR;
+   end Build_LCR;
+
+   -- Public UART procedures
+   procedure Initialize_UART is
+      Config : constant UART_Config := Default_Config;
+      Port : constant UART_Port := COM1;
+      Base : constant Natural := Get_Base(Port);
+      Divisor : constant Natural := Get_Divisor(Config.Baud);
+      LCR_Value : constant Byte := Build_LCR(Config);
+      Success : Boolean;
+      Test_Value : constant Byte := 16#A5#;
+      Read_Value : Byte;
+   begin
+      -- Disable interrupts
+      Out_Byte(Base + INT_ENABLE_REG, 0);
+
+      -- Enable DLAB to set baud rate
+      Out_Byte(Base + LINE_CTRL_REG, LCR_DLAB);
+
+      -- Set divisor (low and high bytes)
+      Out_Byte(Base + DATA_REG, Byte(Divisor mod 256));
+      Out_Byte(Base + INT_ENABLE_REG, Byte(Divisor / 256));
+
+      -- Set line control (disables DLAB)
+      Out_Byte(Base + LINE_CTRL_REG, LCR_Value);
+
+      -- Configure FIFO
+      if Config.Enable_FIFO then
+         Out_Byte(Base + FIFO_CTRL_REG, 
+                  FCR_ENABLE_FIFO or FCR_CLEAR_RX or FCR_CLEAR_TX or FCR_TRIGGER_14);
       else
-         Put_Line(COM1, "UART WARNING - Self-test failed");
+         Out_Byte(Base + FIFO_CTRL_REG, 0);
+      end if;
+
+      -- Configure modem control
+      if Config.RTS_CTS then
+         Out_Byte(Base + MODEM_CTRL_REG, MCR_DTR or MCR_RTS or MCR_OUT2);
+      else
+         Out_Byte(Base + MODEM_CTRL_REG, MCR_DTR or MCR_RTS or MCR_OUT1 or MCR_OUT2);
+      end if;
+
+      -- Self-test using scratch register
+      Out_Byte(Base + SCRATCH_REG, Test_Value);
+      Read_Value := In_Byte(Base + SCRATCH_REG);
+      Success := (Read_Value = Test_Value);
+
+      Port_States(Port).Initialized := True;
+      Port_States(Port).Last_Error := No_Error;
+
+      -- Send initialization message
+      if Success then
+         Serial_Put_String("UART OK - Professional Driver Active" & ASCII.LF);
+      else
+         Serial_Put_String("UART WARNING - Self-test failed" & ASCII.LF);
       end if;
    end Initialize_UART;
 
-   procedure Serial_Put_Char (C : Character) is
+   function TX_Ready (Port : UART_Port := COM1) return Boolean is
+      Base : constant Natural := Get_Base(Port);
+      Status : constant Byte := In_Byte(Base + LINE_STATUS_REG);
    begin
-      Put_Char(COM1, C);
+      return (Status and LSR_TX_HOLDING_EMPTY) /= 0;
+   end TX_Ready;
+
+   function TX_Empty (Port : UART_Port := COM1) return Boolean is
+      Base : constant Natural := Get_Base(Port);
+      Status : constant Byte := In_Byte(Base + LINE_STATUS_REG);
+   begin
+      return (Status and LSR_TX_EMPTY) /= 0;
+   end TX_Empty;
+
+   procedure Serial_Put_Char (C : Character) is
+      Port : constant UART_Port := COM1;
+      Base : constant Natural := Get_Base(Port);
+   begin
+      -- Wait for transmit buffer to be ready
+      while not TX_Ready(Port) loop
+         null;
+      end loop;
+
+      -- Send character
+      Out_Byte(Base + DATA_REG, Character'Pos(C));
    end Serial_Put_Char;
 
    procedure Serial_Put_String (S : String) is
    begin
-      Put_String(COM1, S);
+      for I in S'Range loop
+         Serial_Put_Char(S(I));
+      end loop;
    end Serial_Put_String;
 
-   function Serial_Get_Char return Character is
+   procedure Serial_Put_Line (S : String) is
    begin
-      return Get_Char(COM1);
+      Serial_Put_String(S);
+      Serial_Put_Char(ASCII.CR);
+      Serial_Put_Char(ASCII.LF);
+   end Serial_Put_Line;
+
+   function Serial_Data_Available (Port : UART_Port := COM1) return Boolean is
+      Base : constant Natural := Get_Base(Port);
+      Status : constant Byte := In_Byte(Base + LINE_STATUS_REG);
+   begin
+      -- Check for errors
+      if (Status and (LSR_OVERRUN_ERROR or LSR_PARITY_ERROR or 
+                      LSR_FRAMING_ERROR or LSR_BREAK_INTERRUPT)) /= 0 then
+         if (Status and LSR_OVERRUN_ERROR) /= 0 then
+            Port_States(Port).Last_Error := Overrun_Error;
+         elsif (Status and LSR_PARITY_ERROR) /= 0 then
+            Port_States(Port).Last_Error := Parity_Error;
+         elsif (Status and LSR_FRAMING_ERROR) /= 0 then
+            Port_States(Port).Last_Error := Framing_Error;
+         elsif (Status and LSR_BREAK_INTERRUPT) /= 0 then
+            Port_States(Port).Last_Error := Break_Interrupt;
+         end if;
+      end if;
+
+      return (Status and LSR_DATA_READY) /= 0;
+   end Serial_Data_Available;
+
+   function Serial_Get_Char return Character is
+      Port : constant UART_Port := COM1;
+      Base : constant Natural := Get_Base(Port);
+   begin
+      -- Wait for data
+      while not Serial_Data_Available(Port) loop
+         null;
+      end loop;
+
+      return Character'Val(In_Byte(Base + DATA_REG));
    end Serial_Get_Char;
 
-   function Serial_Data_Available return Boolean is
+   function Serial_Get_Char_Timeout (Timeout : Natural) return Character is
+      Port : constant UART_Port := COM1;
+      Counter : Natural := 0;
    begin
-      return Data_Available(COM1);
-   end Serial_Data_Available;
+      while Counter < Timeout loop
+         if Serial_Data_Available(Port) then
+            return Serial_Get_Char;
+         end if;
+         Counter := Counter + 1;
+      end loop;
+      Port_States(Port).Last_Error := Timeout_Error;
+      return ASCII.NUL;
+   end Serial_Get_Char_Timeout;
+
+   procedure Serial_Put_Hex_Byte (Value : Natural) is
+      Hex_Chars : constant String := "0123456789ABCDEF";
+      V : constant Natural := Value mod 256;
+   begin
+      Serial_Put_Char(Hex_Chars((V / 16) + 1));
+      Serial_Put_Char(Hex_Chars((V mod 16) + 1));
+   end Serial_Put_Hex_Byte;
+
+   procedure Serial_Put_Natural (N : Natural) is
+   begin
+      if N > 9 then
+         Serial_Put_Natural (N / 10);
+      end if;
+      Serial_Put_Char(Character'Val(Character'Pos('0') + (N mod 10)));
+   end Serial_Put_Natural;
 
    -- ================================
    -- VGA CONSOLE SUBSYSTEM (COMPLETE)
@@ -483,8 +775,8 @@ package body EmergeOS is
    begin
       -- INITIALIZE UART FIRST (PROTOCOL: Hardware synchronization)
       Initialize_UART;
-      Put_Line(COM1, "=== HOLOXLIFE OS BOOTING ===");
-      Put_Line(COM1, "Professional UART Driver Active");
+      Serial_Put_Line("=== HOLOXLIFE OS BOOTING ===");
+      Serial_Put_Line("Professional UART Driver Active");
 
       -- IMMEDIATE KERNEL VGA TEST - SECOND INSTRUCTION
       Kernel_VGA_Test;
@@ -496,12 +788,12 @@ package body EmergeOS is
       Console_Clear;
       
       -- PROTOCOL ENHANCEMENT: SERIAL OUTPUT FOR QEMU
-      Put_Line(COM1, "HoloXlife OS - Protocol Step 7");
-      Put_Line(COM1, "Enhanced Pulse Synchronization");
-      Put_Line(COM1, "Hardware + Temporal Entities Active");
-      Put_Line(COM1, "Serial Output: QEMU Capture Enabled");
-      Put_Line(COM1, "=============================================");
-      Put_Line(COM1, "");
+      Serial_Put_Line("HoloXlife OS - Protocol Step 7");
+      Serial_Put_Line("Enhanced Pulse Synchronization");
+      Serial_Put_Line("Hardware + Temporal Entities Active");
+      Serial_Put_Line("Serial Output: QEMU Capture Enabled");
+      Serial_Put_Line("=============================================");
+      Serial_Put_Line("");
       
       Enhanced_Put_String ("HoloXlife OS - Protocol Step 7");
       Enhanced_New_Line;
