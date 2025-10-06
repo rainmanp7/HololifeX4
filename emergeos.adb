@@ -421,7 +421,7 @@ package body EmergeOS is
       Display_Network_Status;
    end Run_Enhanced_Pulse_Cycle;
 
-   procedure EmergeOS is
+      procedure EmergeOS is
    begin
       Initialize_UART;
       Serial_Put_Line("=== HOLOXLIFE OS BOOTING ===");
@@ -505,7 +505,7 @@ package body EmergeOS is
       end loop;
    end EmergeOS;
 
-   -- ✅ PRAGMA EXPORT PLACED IN SAME DECLARATIVE PART
+   -- ✅ PRAGMA EXPORT MOVED TO IMMEDIATELY AFTER PROCEDURE DECLARATION
    pragma Export (C, EmergeOS, "_ada_boot");
 
 end EmergeOS;
