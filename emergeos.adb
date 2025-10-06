@@ -7,6 +7,7 @@ with Pulse_Sync; use Pulse_Sync;    -- ESSENTIAL: Network operations visibility
 with Hardware_Entity; use Hardware_Entity;  -- ESSENTIAL: Hardware entity integration
 with Temporal_Entity; use Temporal_Entity;  -- ESSENTIAL: Temporal entity integration
 with System.Machine_Code; use System.Machine_Code;
+with UART; use UART;  -- SIMPLE UART DRIVER
 
 package body EmergeOS is
 
@@ -17,147 +18,38 @@ package body EmergeOS is
    pragma Unreferenced (Word);
 
    -- ================================
-   -- COMPLETE UART SERIAL SUBSYSTEM
+   -- SIMPLE UART WRAPPER (COMPATIBILITY)
    -- ================================
    
-   -- UART Port Addresses (converted to System.Address)
-   COM1_BASE : constant System.Address := System.Storage_Elements.To_Address(16#3F8#);
-   COM1_DATA : constant System.Address := COM1_BASE;
-   COM1_INT_ENABLE : constant System.Address := System.Storage_Elements.To_Address(16#3F9#);
-   COM1_BAUD_LOW : constant System.Address := COM1_BASE;
-   COM1_BAUD_HIGH : constant System.Address := System.Storage_Elements.To_Address(16#3F9#);
-   COM1_INT_ID : constant System.Address := System.Storage_Elements.To_Address(16#3FA#);
-   COM1_LINE_CTRL : constant System.Address := System.Storage_Elements.To_Address(16#3FB#);
-   COM1_MODEM_CTRL : constant System.Address := System.Storage_Elements.To_Address(16#3FC#);
-   COM1_LINE_STATUS : constant System.Address := System.Storage_Elements.To_Address(16#3FD#);
-   COM1_MODEM_STATUS : constant System.Address := System.Storage_Elements.To_Address(16#3FE#);
-   COM1_SCRATCH : constant System.Address := System.Storage_Elements.To_Address(16#3FF#);
-
-   -- UART Line Status Register bits
-   LSR_DATA_READY : constant Byte := 16#01#;
-   LSR_OVERRUN_ERR : constant Byte := 16#02#;
-   LSR_PARITY_ERR : constant Byte := 16#04#;
-   LSR_FRAMING_ERR : constant Byte := 16#08#;
-   LSR_BREAK_INDICATOR : constant Byte := 16#10#;
-   LSR_TRANSMIT_HOLD_EMPTY : constant Byte := 16#20#;
-   LSR_TRANSMIT_EMPTY : constant Byte := 16#40#;
-   LSR_FIFO_ERROR : constant Byte := 16#80#;
-
    procedure Initialize_UART is
-      Dummy : Byte;
    begin
-      -- Disable all interrupts
-      Asm ("outb %0, %1",
-           Inputs => (Byte'Asm_Input ("a", 0), System.Address'Asm_Input ("Nd", COM1_INT_ENABLE)),
-           Volatile => True);
-
-      -- Enable DLAB (set baud rate divisor)
-      Asm ("outb %0, %1", 
-           Inputs => (Byte'Asm_Input ("a", 16#80#), System.Address'Asm_Input ("Nd", COM1_LINE_CTRL)),
-           Volatile => True);
-
-      -- Set divisor to 3 (lo byte) for 38400 baud
-      Asm ("outb %0, %1",
-           Inputs => (Byte'Asm_Input ("a", 3), System.Address'Asm_Input ("Nd", COM1_BAUD_LOW)),
-           Volatile => True);
-      
-      -- Set divisor (hi byte) to 0
-      Asm ("outb %0, %1",
-           Inputs => (Byte'Asm_Input ("a", 0), System.Address'Asm_Input ("Nd", COM1_BAUD_HIGH)),
-           Volatile => True);
-
-      -- 8 bits, no parity, one stop bit, disable DLAB
-      Asm ("outb %0, %1",
-           Inputs => (Byte'Asm_Input ("a", 16#03#), System.Address'Asm_Input ("Nd", COM1_LINE_CTRL)),
-           Volatile => True);
-
-      -- Enable FIFO, clear them, with 14-byte threshold
-      Asm ("outb %0, %1",
-           Inputs => (Byte'Asm_Input ("a", 16#C7#), System.Address'Asm_Input ("Nd", COM1_INT_ID)),
-           Volatile => True);
-
-      -- IRQs disabled, RTS/DSR set
-      Asm ("outb %0, %1",
-           Inputs => (Byte'Asm_Input ("a", 16#0B#), System.Address'Asm_Input ("Nd", COM1_MODEM_CTRL)),
-           Volatile => True);
-
-      -- Test UART by reading and writing scratch register
-      Asm ("outb %0, %1",
-           Inputs => (Byte'Asm_Input ("a", 16#A5#), System.Address'Asm_Input ("Nd", COM1_SCRATCH)),
-           Volatile => True);
-      
-      Asm ("inb %1, %0",
-           Outputs => (Byte'Asm_Output ("=a", Dummy)),
-           Inputs => (System.Address'Asm_Input ("Nd", COM1_SCRATCH)),
-           Volatile => True);
-
-      -- Send test pattern
-      Serial_Put_String("UART OK" & ASCII.LF);
+      UART.Initialize;
+      UART.Put_Line("UART OK - Simple Driver Active");
    end Initialize_UART;
 
    procedure Serial_Put_Char (C : Character) is
-      Status : Byte;
    begin
-      -- Wait for transmit buffer to be empty
-      loop
-         Asm ("inb %1, %0",
-              Outputs => (Byte'Asm_Output ("=a", Status)),
-              Inputs => (System.Address'Asm_Input ("Nd", COM1_LINE_STATUS)),
-              Volatile => True);
-         exit when (Status and LSR_TRANSMIT_HOLD_EMPTY) /= 0;
-      end loop;
-
-      -- Send character
-      Asm ("outb %0, %1",
-           Inputs => (Byte'Asm_Input ("a", Character'Pos(C)), System.Address'Asm_Input ("Nd", COM1_DATA)),
-           Volatile => True);
+      UART.Put_Char(C);
    end Serial_Put_Char;
 
    procedure Serial_Put_String (S : String) is
    begin
-      for I in S'Range loop
-         Serial_Put_Char(S(I));
-      end loop;
+      UART.Put_String(S);
    end Serial_Put_String;
 
-   -- FIXED: Added missing Serial_Put_Line procedure
    procedure Serial_Put_Line (S : String) is
    begin
-      Serial_Put_String(S);
-      Serial_Put_Char(ASCII.CR);
-      Serial_Put_Char(ASCII.LF);
+      UART.Put_Line(S);
    end Serial_Put_Line;
 
    function Serial_Get_Char return Character is
-      Status : Byte;
-      Data : Byte;
    begin
-      -- Wait for data to be available
-      loop
-         Asm ("inb %1, %0",
-              Outputs => (Byte'Asm_Output ("=a", Status)),
-              Inputs => (System.Address'Asm_Input ("Nd", COM1_LINE_STATUS)),
-              Volatile => True);
-         exit when (Status and LSR_DATA_READY) /= 0;
-      end loop;
-
-      -- Read character
-      Asm ("inb %1, %0",
-           Outputs => (Byte'Asm_Output ("=a", Data)),
-           Inputs => (System.Address'Asm_Input ("Nd", COM1_DATA)),
-           Volatile => True);
-
-      return Character'Val(Data);
+      return UART.Get_Char;
    end Serial_Get_Char;
 
    function Serial_Data_Available return Boolean is
-      Status : Byte;
    begin
-      Asm ("inb %1, %0",
-           Outputs => (Byte'Asm_Output ("=a", Status)),
-           Inputs => (System.Address'Asm_Input ("Nd", COM1_LINE_STATUS)),
-           Volatile => True);
-      return (Status and LSR_DATA_READY) /= 0;
+      return UART.Data_Available;
    end Serial_Data_Available;
 
    -- ================================
@@ -587,7 +479,7 @@ package body EmergeOS is
       -- INITIALIZE UART FIRST (PROTOCOL: Hardware synchronization)
       Initialize_UART;
       Serial_Put_Line("=== HOLOXLIFE OS BOOTING ===");
-      Serial_Put_Line("UART Initialized Successfully");
+      Serial_Put_Line("Simple UART Driver Active");
 
       -- IMMEDIATE KERNEL VGA TEST - SECOND INSTRUCTION
       Kernel_VGA_Test;
