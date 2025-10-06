@@ -1,93 +1,59 @@
-; boot.asm - HOLOXLIFE OS BOOTLOADER
-[BITS 16]
-[ORG 0x7C00]
-
-%ifndef HOLOGRAPHIC_KERNEL_SECTORS
-    %define HOLOGRAPHIC_KERNEL_SECTORS 20
-%endif
-
-%ifndef BOOT_PADDING  
-    %define BOOT_PADDING 0
-%endif
+; boot.asm - HoloXlife Ada Bootloader (Protected Mode)
+[org 0x7c00]
+[bits 16]
 
 start:
-    ; Initialize segments
+    cli
     xor ax, ax
     mov ds, ax
     mov es, ax
     mov ss, ax
-    mov sp, 0x7C00
+    mov sp, 0x9000
+    sti
 
-    ; Save boot drive
-    mov [boot_drive], dl
-
-    ; Clear screen and show message
-    mov ax, 0x0003
-    int 0x10
-    
+    ; Print boot message
     mov si, boot_msg
     call print_string
 
-    ; Load kernel from disk
-    mov ax, 0x1000   ; ES:BX = 0x1000:0x0000 (phys 0x10000)
-    mov es, ax
-    xor bx, bx
+    ; Load kernel to 0x1000:0x0000 (linear 0x10000)
     mov ah, 0x02
     mov al, HOLOGRAPHIC_KERNEL_SECTORS
-    mov ch, 0x00
-    mov cl, 0x02
-    mov dh, 0x00
-    mov dl, [boot_drive]
+    mov ch, 0
+    mov cl, 2
+    mov dh, 0
+    mov dl, 0x80
+    mov bx, 0x0000
+    mov es, 0x1000
     int 0x13
     jc disk_error
 
-    ; SUCCESS - Switch to protected mode
-    cli
+    ; Load GDT and enter protected mode
     lgdt [gdt_descriptor]
-    
     mov eax, cr0
-    or eax, 0x1
+    or eax, 1
     mov cr0, eax
-    
-    ; Far jump to 32-bit code segment
     jmp CODE_SEG:init_pm
 
-[BITS 32]
+[bits 32]
 init_pm:
-    ; Setup protected mode segments
     mov ax, DATA_SEG
     mov ds, ax
+    mov ss, ax
     mov es, ax
     mov fs, ax
     mov gs, ax
-    mov ss, ax
-    
-    ; Setup stack
-    mov esp, 0x90000
-    mov ebp, esp
-    
-    ; Clear screen for kernel (VGA direct)
-    mov edi, 0xB8000
-    mov ecx, 80*25
-    mov eax, 0x0F200F20  ; Black spaces
-.clear_loop:
-    mov [edi], eax
-    add edi, 4
-    loop .clear_loop
-    
-    ; Write kernel boot message
-    mov dword [0xB8000], 0x0F4B0F48   ; "HK" (HoloKernel)
-    mov dword [0xB8004], 0x0F4C0F45   ; "EL"
-    
-    ; JUMP TO KERNEL - This is the critical line
+    mov ebp, 0x90000
+    mov esp, ebp
+
+    ; Jump to Ada kernel at 0x10000
     jmp 0x10000
 
-[BITS 16]
+[bits 16]
 print_string:
     lodsb
     or al, al
     jz .done
-    mov ah, 0x0E
+    mov ah, 0x0e
     int 0x10
     jmp print_string
 .done:
@@ -99,25 +65,26 @@ disk_error:
     cli
     hlt
 
+boot_msg:   db 'HoloXlife OS Booting (Protected Mode)...', 13, 10, 0
+error_msg:  db 'Disk Error!', 13, 10, 0
+
 ; GDT
 gdt_start:
-    dq 0x0000000000000000  ; Null descriptor
-
+    dq 0x0
 gdt_code:
-    dw 0xFFFF       ; Limit 0-15
-    dw 0x0000       ; Base 0-15
-    db 0x00         ; Base 16-23
-    db 0x9A         ; Access byte (code)
-    db 0xCF         ; Flags + Limit 16-19
-    db 0x00         ; Base 24-31
-
+    dw 0xFFFF
+    dw 0x0
+    db 0x0
+    db 10011010b
+    db 11001111b
+    db 0x0
 gdt_data:
-    dw 0xFFFF       ; Limit 0-15
-    dw 0x0000       ; Base 0-15
-    db 0x00         ; Base 16-23
-    db 0x92         ; Access byte (data)
-    db 0xCF         ; Flags + Limit 16-19
-    db 0x00         ; Base 24-31
+    dw 0xFFFF
+    dw 0x0
+    db 0x0
+    db 10010010b
+    db 11001111b
+    db 0x0
 gdt_end:
 
 gdt_descriptor:
@@ -127,12 +94,5 @@ gdt_descriptor:
 CODE_SEG equ gdt_code - gdt_start
 DATA_SEG equ gdt_data - gdt_start
 
-boot_drive: db 0
-boot_msg:   db 'HoloXlife Bootloader...', 0x0D, 0x0A, 0
-error_msg:  db 'Disk Error!', 0x0D, 0x0A, 0
-
-; Padding and boot signature
-%if BOOT_PADDING > 0
-    times BOOT_PADDING db 0
-%endif
+times 510-($-$$) db 0
 dw 0xAA55
