@@ -60,8 +60,6 @@ kernel.bin: boot.o emergeos.o pulse_types.o pulse_entities.o pulse_sync.o hardwa
 # Build bootloader with AUTOMATIC PADDING CALCULATION
 boot.bin: boot.asm kernel.bin
 	@echo "Building bootloader with automatic padding calculation..."
-	
-	# Calculate kernel sectors first
 	@KERNEL_SIZE=$$(wc -c < kernel.bin); \
 	SECTORS=$$(( ($$KERNEL_SIZE + 511) / 512 )); \
 	echo "Kernel: $$KERNEL_SIZE bytes = $$SECTORS sectors"; \
@@ -71,15 +69,16 @@ boot.bin: boot.asm kernel.bin
 		-o boot_tmp.bin boot.asm; \
 	\
 	BOOT_SIZE=$$(wc -c < boot_tmp.bin); \
-	echo "Bootloader base size: $$BOOT_SIZE bytes"; \
+	BOOT_CODE_SIZE=$$(($$BOOT_SIZE - 2)); \
+	echo "Bootloader code + signature: $$BOOT_SIZE bytes (code: $$BOOT_CODE_SIZE bytes)"; \
 	\
-	if [ $$BOOT_SIZE -gt 510 ]; then \
-		echo "❌ Bootloader too large! $$BOOT_SIZE > 510 bytes"; \
+	if [ $$BOOT_CODE_SIZE -gt 510 ]; then \
+		echo "❌ Bootloader code too large! $$BOOT_CODE_SIZE > 510 bytes"; \
 		rm -f boot_tmp.bin; \
 		exit 1; \
 	fi; \
 	\
-	PADDING_NEEDED=$$((510 - $$BOOT_SIZE)); \
+	PADDING_NEEDED=$$((510 - $$BOOT_CODE_SIZE)); \
 	echo "Padding needed: $$PADDING_NEEDED bytes"; \
 	\
 	$(ASM) -f bin \
