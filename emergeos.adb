@@ -7,6 +7,7 @@ with Pulse_Sync; use Pulse_Sync;    -- ESSENTIAL: Network operations visibility
 with Hardware_Entity; use Hardware_Entity;  -- ESSENTIAL: Hardware entity integration
 with Temporal_Entity; use Temporal_Entity;  -- ESSENTIAL: Temporal entity integration
 with System.Machine_Code; use System.Machine_Code;
+with UART_Driver; use UART_Driver;  -- PRO UART implementation
 
 package body EmergeOS is
 
@@ -17,139 +18,43 @@ package body EmergeOS is
    pragma Unreferenced (Word);
 
    -- ================================
-   -- COMPLETE UART SERIAL SUBSYSTEM
+   -- PRO UART SERIAL SUBSYSTEM (REPLACED)
    -- ================================
    
-   -- UART Port Addresses
-   COM1_BASE : constant := 16#3F8#;
-   COM1_DATA : constant := COM1_BASE;
-   COM1_INT_ENABLE : constant := COM1_BASE + 1;
-   COM1_BAUD_LOW : constant := COM1_BASE;
-   COM1_BAUD_HIGH : constant := COM1_BASE + 1;
-   COM1_INT_ID : constant := COM1_BASE + 2;
-   COM1_LINE_CTRL : constant := COM1_BASE + 3;
-   COM1_MODEM_CTRL : constant := COM1_BASE + 4;
-   COM1_LINE_STATUS : constant := COM1_BASE + 5;
-   COM1_MODEM_STATUS : constant := COM1_BASE + 6;
-   COM1_SCRATCH : constant := COM1_BASE + 7;
-
-   -- UART Line Status Register bits
-   LSR_DATA_READY : constant Byte := 16#01#;
-   LSR_OVERRUN_ERR : constant Byte := 16#02#;
-   LSR_PARITY_ERR : constant Byte := 16#04#;
-   LSR_FRAMING_ERR : constant Byte := 16#08#;
-   LSR_BREAK_INDICATOR : constant Byte := 16#10#;
-   LSR_TRANSMIT_HOLD_EMPTY : constant Byte := 16#20#;
-   LSR_TRANSMIT_EMPTY : constant Byte := 16#40#;
-   LSR_FIFO_ERROR : constant Byte := 16#80#;
-
    procedure Initialize_UART is
-      Dummy : Byte;
+      Success : Boolean;
    begin
-      -- Disable all interrupts
-      Asm ("outb %0, %1",
-           Inputs => (Byte'Asm_Input ("a", 0), System.Address'Asm_Input ("Nd", COM1_INT_ENABLE)),
-           Volatile => True);
-
-      -- Enable DLAB (set baud rate divisor)
-      Asm ("outb %0, %1", 
-           Inputs => (Byte'Asm_Input ("a", 16#80#), System.Address'Asm_Input ("Nd", COM1_LINE_CTRL)),
-           Volatile => True);
-
-      -- Set divisor to 3 (lo byte) for 38400 baud
-      Asm ("outb %0, %1",
-           Inputs => (Byte'Asm_Input ("a", 3), System.Address'Asm_Input ("Nd", COM1_BAUD_LOW)),
-           Volatile => True);
+      -- Initialize COM1 with professional configuration
+      Initialize(COM1, Default_Config);
       
-      -- Set divisor (hi byte) to 0
-      Asm ("outb %0, %1",
-           Inputs => (Byte'Asm_Input ("a", 0), System.Address'Asm_Input ("Nd", COM1_BAUD_HIGH)),
-           Volatile => True);
-
-      -- 8 bits, no parity, one stop bit, disable DLAB
-      Asm ("outb %0, %1",
-           Inputs => (Byte'Asm_Input ("a", 16#03#), System.Address'Asm_Input ("Nd", COM1_LINE_CTRL)),
-           Volatile => True);
-
-      -- Enable FIFO, clear them, with 14-byte threshold
-      Asm ("outb %0, %1",
-           Inputs => (Byte'Asm_Input ("a", 16#C7#), System.Address'Asm_Input ("Nd", COM1_INT_ID)),
-           Volatile => True);
-
-      -- IRQs disabled, RTS/DSR set
-      Asm ("outb %0, %1",
-           Inputs => (Byte'Asm_Input ("a", 16#0B#), System.Address'Asm_Input ("Nd", COM1_MODEM_CTRL)),
-           Volatile => True);
-
-      -- Test UART by reading and writing scratch register
-      Asm ("outb %0, %1",
-           Inputs => (Byte'Asm_Input ("a", 16#A5#), System.Address'Asm_Input ("Nd", COM1_SCRATCH)),
-           Volatile => True);
+      -- Perform self-test
+      Self_Test(COM1, Success);
       
-      Asm ("inb %1, %0",
-           Outputs => (Byte'Asm_Output ("=a", Dummy)),
-           Inputs => (System.Address'Asm_Input ("Nd", COM1_SCRATCH)),
-           Volatile => True);
-
-      -- Send test pattern
-      Serial_Put_String("UART OK" & ASCII.LF);
+      if Success then
+         Put_Line(COM1, "UART OK - Professional Driver Active");
+      else
+         Put_Line(COM1, "UART WARNING - Self-test failed");
+      end if;
    end Initialize_UART;
 
    procedure Serial_Put_Char (C : Character) is
-      Status : Byte;
    begin
-      -- Wait for transmit buffer to be empty
-      loop
-         Asm ("inb %1, %0",
-              Outputs => (Byte'Asm_Output ("=a", Status)),
-              Inputs => (System.Address'Asm_Input ("Nd", COM1_LINE_STATUS)),
-              Volatile => True);
-         exit when (Status and LSR_TRANSMIT_HOLD_EMPTY) /= 0;
-      end loop;
-
-      -- Send character
-      Asm ("outb %0, %1",
-           Inputs => (Byte'Asm_Input ("a", Character'Pos(C)), System.Address'Asm_Input ("Nd", COM1_DATA)),
-           Volatile => True);
+      Put_Char(COM1, C);
    end Serial_Put_Char;
 
    procedure Serial_Put_String (S : String) is
    begin
-      for I in S'Range loop
-         Serial_Put_Char(S(I));
-      end loop;
+      Put_String(COM1, S);
    end Serial_Put_String;
 
    function Serial_Get_Char return Character is
-      Status : Byte;
-      Data : Byte;
    begin
-      -- Wait for data to be available
-      loop
-         Asm ("inb %1, %0",
-              Outputs => (Byte'Asm_Output ("=a", Status)),
-              Inputs => (System.Address'Asm_Input ("Nd", COM1_LINE_STATUS)),
-              Volatile => True);
-         exit when (Status and LSR_DATA_READY) /= 0;
-      end loop;
-
-      -- Read character
-      Asm ("inb %1, %0",
-           Outputs => (Byte'Asm_Output ("=a", Data)),
-           Inputs => (System.Address'Asm_Input ("Nd", COM1_DATA)),
-           Volatile => True);
-
-      return Character'Val(Data);
+      return Get_Char(COM1);
    end Serial_Get_Char;
 
    function Serial_Data_Available return Boolean is
-      Status : Byte;
    begin
-      Asm ("inb %1, %0",
-           Outputs => (Byte'Asm_Output ("=a", Status)),
-           Inputs => (System.Address'Asm_Input ("Nd", COM1_LINE_STATUS)),
-           Volatile => True);
-      return (Status and LSR_DATA_READY) /= 0;
+      return Data_Available(COM1);
    end Serial_Data_Available;
 
    -- ================================
@@ -578,8 +483,8 @@ package body EmergeOS is
    begin
       -- INITIALIZE UART FIRST (PROTOCOL: Hardware synchronization)
       Initialize_UART;
-      Serial_Put_String("=== HOLOXLIFE OS BOOTING ===" & ASCII.LF);
-      Serial_Put_String("UART Initialized Successfully" & ASCII.LF);
+      Put_Line(COM1, "=== HOLOXLIFE OS BOOTING ===");
+      Put_Line(COM1, "Professional UART Driver Active");
 
       -- IMMEDIATE KERNEL VGA TEST - SECOND INSTRUCTION
       Kernel_VGA_Test;
@@ -591,11 +496,12 @@ package body EmergeOS is
       Console_Clear;
       
       -- PROTOCOL ENHANCEMENT: SERIAL OUTPUT FOR QEMU
-      Serial_Put_String("HoloXlife OS - Protocol Step 7" & ASCII.LF);
-      Serial_Put_String("Enhanced Pulse Synchronization" & ASCII.LF);
-      Serial_Put_String("Hardware + Temporal Entities Active" & ASCII.LF);
-      Serial_Put_String("Serial Output: QEMU Capture Enabled" & ASCII.LF);
-      Serial_Put_String("=============================================" & ASCII.LF & ASCII.LF);
+      Put_Line(COM1, "HoloXlife OS - Protocol Step 7");
+      Put_Line(COM1, "Enhanced Pulse Synchronization");
+      Put_Line(COM1, "Hardware + Temporal Entities Active");
+      Put_Line(COM1, "Serial Output: QEMU Capture Enabled");
+      Put_Line(COM1, "=============================================");
+      Put_Line(COM1, "");
       
       Enhanced_Put_String ("HoloXlife OS - Protocol Step 7");
       Enhanced_New_Line;
