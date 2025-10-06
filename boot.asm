@@ -22,7 +22,8 @@ start:
     mov dh, 0
     mov dl, 0x80
     mov bx, 0x0000
-    mov es, 0x1000
+    mov ax, 0x1000
+    mov es, ax
     int 0x13
     jc disk_error
 
