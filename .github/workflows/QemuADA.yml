@@ -1,4 +1,5 @@
 name: HoloXlife Pure Ada OS Build and Boot Test
+
 on:
   push:
     branches:
@@ -7,14 +8,17 @@ on:
     branches:
       - main
   workflow_dispatch:
+
 jobs:
   build-and-test-pure-ada:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+
     env:
       IMAGE_NAME: emergeos.img
       SERIAL_LOG: serial.log
       QEMU_LOG: qemu.log
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -53,6 +57,7 @@ jobs:
             binutils \
             qemu-system-i386 \
             gettext-base \
+            gettext-base \
             libncurses5-dev \
             xxd
           echo "✅ Pure Ada toolchain installation complete"
@@ -62,7 +67,7 @@ jobs:
           echo "🔍 Verifying source file integrity..."
           REQUIRED_FILES=(
             "boot.asm"
-            "linker.ld" 
+            "linker.ld"
             "emergeos.ads"
             "emergeos.adb"
             "system.ads"
@@ -81,16 +86,22 @@ jobs:
       - name: Force Fresh Build
         run: |
           echo "🔨 FORCE FRESH BUILD - Clean slate approach..."
+          # Attempt to remove existing artifacts, ignore errors
           rm -f *.o *.ali *.elf *.bin *.img gnat.adc 2>/dev/null || true
-          cat > gnat.adc << 'EOF'
-pragma Restrictions (No_Exceptions);
-pragma Restrictions (No_Implicit_Heap_Allocations);
-pragma Restrictions (No_Tasking);
-pragma Restrictions (No_Protected_Types);
-pragma Restrictions (No_Finalization);
-pragma Restrictions (No_Secondary_Stack);
-EOF
-          echo "✅ gnat.adc created"
+          # Create gnat.adc
+          echo "pragma Restrictions (No_Exceptions);" > gnat.adc
+          echo "pragma Restrictions (No_Implicit_Heap_Allocations);" >> gnat.adc
+          echo "pragma Restrictions (No_Tasking);" >> gnat.adc
+          echo "pragma Restrictions (No_Protected_Types);" >> gnat.adc
+          echo "pragma Restrictions (No_Finalization);" >> gnat.adc
+          echo "pragma Restrictions (No_Secondary_Stack);" >> gnat.adc
+          # Check if gnat.adc was created
+          if [ -f gnat.adc ]; then
+            echo "✅ gnat.adc created"
+          else
+            echo "❌ Failed to create gnat.adc"
+            exit 1
+          fi
 
       - name: Build HoloXlife Pure Ada OS
         run: |
