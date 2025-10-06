@@ -45,43 +45,18 @@ kernel.bin: boot.o emergeos.o pulse_types.o pulse_entities.o pulse_sync.o hardwa
 	$(LD) $(LDFLAGS) -o kernel.elf $^
 	$(OBJCOPY) -O binary kernel.elf kernel.bin
 	@echo "✅ Kernel: $$(wc -c < kernel.bin) bytes"
-# Build bootloader with AUTOMATIC PADDING CALCULATION
+# Build bootloader — PROTECTED MODE VERSION (FIXED SIZE)
 boot.bin: boot.asm kernel.bin
-	@echo "Building bootloader with automatic padding calculation..."
 	@KERNEL_SIZE=$$(wc -c < kernel.bin); \
 	SECTORS=$$(( ($$KERNEL_SIZE + 511) / 512 )); \
 	echo "Kernel: $$KERNEL_SIZE bytes = $$SECTORS sectors"; \
-	\
-	$(ASM) -f bin \
-		-D HOLOGRAPHIC_KERNEL_SECTORS=$$SECTORS \
-		-o boot_tmp.bin boot.asm; \
-	\
-	BOOT_SIZE=$$(wc -c < boot_tmp.bin); \
-	BOOT_CODE_SIZE=$$(($$BOOT_SIZE - 2)); \
-	echo "Bootloader code + signature: $$BOOT_SIZE bytes (code: $$BOOT_CODE_SIZE bytes)"; \
-	\
-	if [ $$BOOT_CODE_SIZE -gt 510 ]; then \
-		echo "❌ Bootloader code too large! $$BOOT_CODE_SIZE > 510 bytes"; \
-		rm -f boot_tmp.bin; \
-		exit 1; \
-	fi; \
-	\
-	PADDING_NEEDED=$$((510 - $$BOOT_CODE_SIZE)); \
-	echo "Padding needed: $$PADDING_NEEDED bytes"; \
-	\
-	$(ASM) -f bin \
-		-D HOLOGRAPHIC_KERNEL_SECTORS=$$SECTORS \
-		-D BOOT_PADDING=$$PADDING_NEEDED \
-		boot.asm -o boot.bin; \
-	\
-	rm -f boot_tmp.bin; \
-	\
+	nasm -f bin -D HOLOGRAPHIC_KERNEL_SECTORS=$$SECTORS boot.asm -o boot.bin; \
 	FINAL_SIZE=$$(wc -c < boot.bin); \
 	if [ $$FINAL_SIZE -ne 512 ]; then \
 		echo "❌ Bootloader size incorrect: $$FINAL_SIZE != 512"; \
 		exit 1; \
 	fi; \
-	echo "✅ Bootloader: 512 bytes (protocol compliant)"
+	echo "✅ Bootloader: 512 bytes (protected mode, protocol compliant)"
 # Create OS image
 emergeos.img: boot.bin kernel.bin
 	@echo "Creating HoloXlife Pure Ada OS disk image..."
@@ -89,7 +64,7 @@ emergeos.img: boot.bin kernel.bin
 	dd if=boot.bin of=$@ conv=notrunc 2>/dev/null
 	dd if=kernel.bin of=$@ bs=512 seek=1 conv=notrunc 2>/dev/null
 	@echo "HoloXlife OS image created: emergeos.img"
-# Run in QEMU — PROTOCOL-COMPLIANT TRI-STREAM OUTPUT
+# Run in QEMU — TRIPLE OUTPUT: VGA window + serial.log + qemu.log
 run: emergeos.img
 	@echo "Booting HoloXlife Pure Ada Operating System..."
 	@echo "  - VGA output: QEMU window (SDL)"
