@@ -50,13 +50,13 @@ hardware_entity.o: hardware_entity.adb hardware_entity.ads pulse_types.ads gnat.
 temporal_entity.o: temporal_entity.adb temporal_entity.ads pulse_types.ads gnat.adc
 	$(GCC) $(ADAFLAGS) temporal_entity.adb -o temporal_entity.o
 
-# UART DRIVER COMPILATION (ADDED)
-uart_driver.o: uart_driver.adb uart_driver.ads gnat.adc
-	$(GCC) $(ADAFLAGS) uart_driver.adb -o uart_driver.o
+# SIMPLE UART DRIVER COMPILATION
+uart.o: uart.adb uart.ads gnat.adc
+	$(GCC) $(ADAFLAGS) uart.adb -o uart.o
 
-# Link kernel (UPDATED to include uart_driver.o)
-kernel.bin: boot.o emergeos.o pulse_types.o pulse_entities.o pulse_sync.o hardware_entity.o temporal_entity.o uart_driver.o
-	@echo "Linking HoloXlife OS with Hardware + Temporal Entities + UART Driver..."
+# Link kernel (UPDATED to include uart.o)
+kernel.bin: boot.o emergeos.o pulse_types.o pulse_entities.o pulse_sync.o hardware_entity.o temporal_entity.o uart.o
+	@echo "Linking HoloXlife OS with Hardware + Temporal Entities + Simple UART..."
 	$(LD) $(LDFLAGS) -o kernel.elf $^
 	$(OBJCOPY) -O binary kernel.elf kernel.bin
 	@echo "✅ Kernel: $$(wc -c < kernel.bin) bytes"
@@ -112,7 +112,7 @@ run: emergeos.img
 	@echo "Booting HoloXlife Pure Ada Operating System..."
 	qemu-system-i386 -drive format=raw,file=emergeos.img -serial stdio
 
-# Clean (UPDATED to clean uart_driver files)
+# Clean (UPDATED to clean uart files)
 clean:
-	rm -f *.bin *.o *.img *.elf *.ali gnat.adc boot_tmp.bin uart_driver.ali
+	rm -f *.bin *.o *.img *.elf *.ali gnat.adc boot_tmp.bin uart.ali
 	@echo "Build cleaned"
