@@ -7,6 +7,7 @@ with Pulse_Types; use Pulse_Types;  -- ESSENTIAL: Entity visibility for pulse ne
 with Pulse_Sync; use Pulse_Sync;    -- ESSENTIAL: Network operations visibility  
 with Hardware_Entity; use Hardware_Entity;  -- ESSENTIAL: Hardware entity integration
 with Temporal_Entity; use Temporal_Entity;  -- ESSENTIAL: Temporal entity integration
+with System.Machine_Code; use System.Machine_Code;
 
 with UART; use UART;  -- SIMPLE UART DRIVER
 package body EmergeOS is
@@ -38,8 +39,6 @@ package body EmergeOS is
    pragma Pack (VGA_Entry);
 
    type VGA_Buffer_Type is array (0 .. 24, 0 .. 79) of VGA_Entry;
-
-   -- DECLARE VGA_BUFFER WITH REPRESENTATION CLAUSE IMMEDIATELY
    VGA_Buffer : aliased VGA_Buffer_Type;
    for VGA_Buffer'Address use System.Storage_Elements.To_Address(VGA_Buffer_Address);
    pragma Import (Ada, VGA_Buffer);
@@ -47,8 +46,6 @@ package body EmergeOS is
    HOLO_MATRIX_SIZE : constant := 512;
    type Holo_Matrix_Type is array (0 .. HOLO_MATRIX_SIZE-1, 
                                   0 .. HOLO_MATRIX_SIZE-1) of Byte;
-
-   -- DECLARE HOLO_MATRIX WITH REPRESENTATION CLAUSE IMMEDIATELY  
    Holo_Matrix : aliased Holo_Matrix_Type;
    for Holo_Matrix'Address use System.Storage_Elements.To_Address(HOLO_BASE);
    pragma Import (Ada, Holo_Matrix);
@@ -421,7 +418,7 @@ package body EmergeOS is
       Display_Network_Status;
    end Run_Enhanced_Pulse_Cycle;
 
-      procedure EmergeOS is
+   procedure EmergeOS is
    begin
       Initialize_UART;
       Serial_Put_Line("=== HOLOXLIFE OS BOOTING ===");
@@ -505,7 +502,7 @@ package body EmergeOS is
       end loop;
    end EmergeOS;
 
-   -- ✅ PRAGMA EXPORT MOVED TO IMMEDIATELY AFTER PROCEDURE DECLARATION
+   -- ✅ PRAGMA EXPORT PLACED IN SAME DECLARATIVE PART
    pragma Export (C, EmergeOS, "_ada_boot");
 
 end EmergeOS;
