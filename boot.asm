@@ -11,7 +11,6 @@ start:
     mov sp, 0x9000
     sti
 
-    ; Print boot message
     mov si, boot_msg
     call print_string
 
@@ -27,7 +26,7 @@ start:
     int 0x13
     jc disk_error
 
-    ; Load GDT and enter protected mode
+    ; Enter protected mode
     lgdt [gdt_descriptor]
     mov eax, cr0
     or eax, 1
@@ -44,8 +43,6 @@ init_pm:
     mov gs, ax
     mov ebp, 0x90000
     mov esp, ebp
-
-    ; Jump to Ada kernel at 0x10000
     jmp 0x10000
 
 [bits 16]
