@@ -1,4 +1,4 @@
-/* HoloXlife Pure Ada OS Linker Script - Corrected Entry */
+/* HoloXlife Pure Ada OS Linker Script - Protocol Synchronized */
 ENTRY(_ada_boot)
 
 SECTIONS
@@ -6,6 +6,7 @@ SECTIONS
     . = 0x8000;
     
     .text : {
+        *(.text._ada_boot)  /* CRITICAL: Entry point at 0x8000 */
         *(.text)
         *(.text.*)
     }
