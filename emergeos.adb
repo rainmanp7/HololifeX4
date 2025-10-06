@@ -2,6 +2,7 @@
 -- Complete integration with Hardware + Temporal entities and firefly coupling
 with System;
 with System.Storage_Elements;
+use System.Storage_Elements;
 with Pulse_Types; use Pulse_Types;  -- ESSENTIAL: Entity visibility for pulse network
 with Pulse_Sync; use Pulse_Sync;    -- ESSENTIAL: Network operations visibility  
 with Hardware_Entity; use Hardware_Entity;  -- ESSENTIAL: Hardware entity integration
