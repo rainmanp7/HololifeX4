@@ -20,18 +20,18 @@ package body EmergeOS is
    -- COMPLETE UART SERIAL SUBSYSTEM
    -- ================================
    
-   -- UART Port Addresses
-   COM1_BASE : constant := 16#3F8#;
-   COM1_DATA : constant := COM1_BASE;
-   COM1_INT_ENABLE : constant := COM1_BASE + 1;
-   COM1_BAUD_LOW : constant := COM1_BASE;
-   COM1_BAUD_HIGH : constant := COM1_BASE + 1;
-   COM1_INT_ID : constant := COM1_BASE + 2;
-   COM1_LINE_CTRL : constant := COM1_BASE + 3;
-   COM1_MODEM_CTRL : constant := COM1_BASE + 4;
-   COM1_LINE_STATUS : constant := COM1_BASE + 5;
-   COM1_MODEM_STATUS : constant := COM1_BASE + 6;
-   COM1_SCRATCH : constant := COM1_BASE + 7;
+   -- UART Port Addresses (converted to System.Address)
+   COM1_BASE : constant System.Address := System.Storage_Elements.To_Address(16#3F8#);
+   COM1_DATA : constant System.Address := COM1_BASE;
+   COM1_INT_ENABLE : constant System.Address := System.Storage_Elements.To_Address(16#3F9#);
+   COM1_BAUD_LOW : constant System.Address := COM1_BASE;
+   COM1_BAUD_HIGH : constant System.Address := System.Storage_Elements.To_Address(16#3F9#);
+   COM1_INT_ID : constant System.Address := System.Storage_Elements.To_Address(16#3FA#);
+   COM1_LINE_CTRL : constant System.Address := System.Storage_Elements.To_Address(16#3FB#);
+   COM1_MODEM_CTRL : constant System.Address := System.Storage_Elements.To_Address(16#3FC#);
+   COM1_LINE_STATUS : constant System.Address := System.Storage_Elements.To_Address(16#3FD#);
+   COM1_MODEM_STATUS : constant System.Address := System.Storage_Elements.To_Address(16#3FE#);
+   COM1_SCRATCH : constant System.Address := System.Storage_Elements.To_Address(16#3FF#);
 
    -- UART Line Status Register bits
    LSR_DATA_READY : constant Byte := 16#01#;
