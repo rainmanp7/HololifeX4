@@ -1,8 +1,8 @@
 -- emergeos.ads - HoloXlife OS Package Specification
 package EmergeOS is
-   pragma Elaborate_Body;
+   pragma Elaborate_Body;  -- Ensure body is elaborated before use
    
    procedure EmergeOS;
-   pragma Export (C, EmergeOS, "_ada_boot");  -- CRITICAL: This must exist
+   -- Main operating system procedure
    
 end EmergeOS;
