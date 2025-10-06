@@ -6,12 +6,12 @@
 
 ; HOLOGRAPHIC_KERNEL_SECTORS will be passed from Makefile
 %ifndef HOLOGRAPHIC_KERNEL_SECTORS
-    %define HOLOGRAPHIC_KERNEL_SECTORS 10  ; Default fallback
+    %define HOLOGRAPHIC_KERNEL_SECTORS 10
 %endif
 
 ; BOOT_PADDING will be passed from Makefile on second pass
 %ifndef BOOT_PADDING
-    %define BOOT_PADDING 0  ; Default for first pass
+    %define BOOT_PADDING 0
 %endif
 
 start:
@@ -27,16 +27,16 @@ start:
     call print_string
 
     ; Load kernel from disk
-    mov ah, 0x02                    ; BIOS read sector function
-    mov al, HOLOGRAPHIC_KERNEL_SECTORS  ; Number of sectors to read
-    mov ch, 0                       ; Cylinder 0
-    mov cl, 2                       ; Start from sector 2 (after boot sector)
-    mov dh, 0                       ; Head 0
-    mov dl, 0x80                    ; First hard drive (use 0x00 for floppy)
-    mov bx, 0x1000                  ; Load to 0x1000:0x0000
+    mov ah, 0x02
+    mov al, HOLOGRAPHIC_KERNEL_SECTORS
+    mov ch, 0
+    mov cl, 2
+    mov dh, 0
+    mov dl, 0x80
+    mov bx, 0x1000
     int 0x13
 
-    jc disk_error                   ; Jump if carry flag set (error)
+    jc disk_error
 
     ; Jump to loaded kernel
     jmp 0x1000:0x0000
@@ -60,8 +60,10 @@ print_string:
 boot_msg:    db 'HoloXlife OS Booting...', 13, 10, 0
 error_msg:   db 'Disk Error!', 13, 10, 0
 
-; Automatic padding - calculated by Makefile
-times BOOT_PADDING db 0
+; Pad to 510 bytes
+%if BOOT_PADDING > 0
+    times BOOT_PADDING db 0
+%endif
 
-; Boot signature (must be at bytes 510-511)
+; Boot signature
 dw 0xAA55
