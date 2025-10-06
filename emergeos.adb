@@ -578,3 +578,4 @@ package body EmergeOS is
 begin
    null;
 end EmergeOS;
+pragma Export (C, EmergeOS, "_ada_boot");
