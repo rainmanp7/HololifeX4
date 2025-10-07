@@ -1,6 +1,9 @@
 -- emergeos.adb: Minimal Boot + Serial Test
 with System;
 with System.Storage_Elements;
+use System.Storage_Elements;
+with System.Machine_Code; 
+use System.Machine_Code;
 
 package body EmergeOS is
    procedure Boot is
