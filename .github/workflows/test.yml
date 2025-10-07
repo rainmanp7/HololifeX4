@@ -1,4 +1,4 @@
-name: Bootloader Debug Test
+name: Bootloader Debug - Fix SMM Issue
 
 on:
   push:
@@ -20,77 +20,85 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y nasm qemu-system-i386 xxd
 
-    - name: Verify Bootloader Signature
+    - name: Debug Bootloader Compilation
       run: |
-        echo "=== Checking Bootloader ==="
-        # First, let's check if boot.asm compiles correctly
+        echo "=== COMPILING BOOTLOADER ==="
         nasm -f bin boot.asm -o boot.bin
         echo "Bootloader size: $(stat -c%s boot.bin) bytes"
         
-        # Check the boot signature at bytes 510-511
-        echo "Boot signature (should be 55 AA):"
+        echo "=== BOOT SIGNATURE CHECK ==="
+        # Check bytes 510-511 - MUST BE 55 AA
         xxd -s 510 -l 2 boot.bin
+        echo "Expected: 55aa"
         
-        # Check if the file ends properly
-        echo "Last 16 bytes of bootloader:"
-        xxd -s 496 -l 16 boot.bin
+        echo "=== BOOTLOADER HEX DUMP ==="
+        xxd -l 512 boot.bin
 
-    - name: Build Minimal Test Kernel
+    - name: Create Simple Test Image
       run: |
-        echo "=== Building Test Kernel ==="
-        nasm -f elf32 test_entry.asm -o test_kernel.o
-        ld -m elf_i386 -Ttext 0x10000 -nostdlib -static test_kernel.o -o test_kernel.elf
-        objcopy -O binary test_kernel.elf test_kernel.bin
-        echo "Kernel size: $(stat -c%s test_kernel.bin) bytes"
+        echo "=== CREATING TEST IMAGE ==="
+        # Create minimal image with JUST bootloader
+        dd if=/dev/zero of=simple_test.img bs=512 count=1 status=none
+        dd if=boot.bin of=simple_test.img conv=notrunc status=none
+        
+        echo "=== IMAGE VERIFICATION ==="
+        xxd -l 512 simple_test.img
 
-    - name: Create Proper Bootable Image
+    - name: Test Boot with SMM Disabled
       run: |
-        echo "=== Creating Bootable Image ==="
-        # Create image with explicit boot sector
-        dd if=/dev/zero of=test.img bs=512 count=2880 status=none
-        
-        # Write bootloader to first sector
-        dd if=boot.bin of=test.img conv=notrunc status=none
-        
-        # Write kernel starting at sector 2
-        dd if=test_kernel.bin of=test.img bs=512 seek=1 conv=notrunc status=none
-        
-        echo "Final image structure:"
-        echo "Sector 0: Bootloader"
-        echo "Sector 1+: Kernel ($(stat -c%s test_kernel.bin) bytes)"
-        xxd -l 1024 test.img | head -20
-
-    - name: Test Boot with Explicit Format
-      run: |
-        echo "=== Testing Boot with Explicit Format ==="
-        timeout 10s qemu-system-i386 \
-          -drive file=test.img,format=raw,if=floppy \
-          -serial stdio \
-          -monitor stdio \
-          -d cpu_reset,guest_errors \
-          -no-reboot \
-          -display none > boot_test.log 2>&1 || true
-        
-        echo "=== Boot Test Output ==="
-        cat boot_test.log
-
-    - name: Alternative Boot Test
-      run: |
-        echo "=== Alternative Boot Test ==="
+        echo "=== TESTING WITH SMM DISABLED ==="
         timeout 5s qemu-system-i386 \
-          -fda test.img \
-          -serial mon:stdio \
-          -d int,cpu_reset \
+          -drive file=simple_test.img,format=raw,if=floppy \
+          -serial stdio \
           -no-reboot \
-          -display none > alt_test.log 2>&1 || true
+          -display none \
+          -d cpu_reset \
+          -S \
+          -s \
+          > smm_test.log 2>&1 || true
         
-        echo "=== Alternative Test Output ==="
+        echo "=== BOOT TEST OUTPUT ==="
+        cat smm_test.log
+
+    - name: Test with Different QEMU Options
+      run: |
+        echo "=== TESTING ALTERNATIVE QEMU CONFIG ==="
+        timeout 5s qemu-system-i386 \
+          -fda simple_test.img \
+          -serial mon:stdio \
+          -no-shutdown \
+          -no-reboot \
+          -display none \
+          -d guest_errors,cpu_reset \
+          > alt_test.log 2>&1 || true
+        
+        echo "=== ALTERNATIVE TEST OUTPUT ==="
         cat alt_test.log
 
-    - name: Upload Debug Artifacts
+    - name: Verify Boot Signature Manually
+      run: |
+        echo "=== MANUAL BOOT SIGNATURE VERIFICATION ==="
+        python3 -c "
+        import sys
+        with open('boot.bin', 'rb') as f:
+            data = f.read()
+            if len(data) >= 512:
+                sig = data[510:512]
+                print(f'Boot signature: {sig.hex()}')
+                if sig == b'\\x55\\xaa':
+                    print('✅ CORRECT BOOT SIGNATURE (55 AA)')
+                else:
+                    print('❌ WRONG BOOT SIGNATURE - SHOULD BE 55 AA')
+                    sys.exit(1)
+            else:
+                print('❌ Bootloader too small')
+                sys.exit(1)
+        "
+
+    - name: Upload Debug Files
       uses: actions/upload-artifact@v4
       with:
-        name: boot-debug
+        name: boot-debug-files
         path: |
           *.bin
           *.img
