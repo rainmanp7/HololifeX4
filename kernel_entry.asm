@@ -1,7 +1,7 @@
 ; kernel_entry.asm - Entry point for Pure Ada Kernel
 [bits 32]
 [global _start]
-[extern _ada_boot]  ; This matches your pragma Export
+[extern _ada_boot]
 
 section .text
 _start:
@@ -12,15 +12,15 @@ _start:
     ; Clear direction flag
     cld
     
-    ; Write "ADA ENTRY" to VGA for better visibility
+    ; Write "STEP 1" to VGA
     mov edi, 0xb8000
-    mov esi, boot_msg
+    mov esi, step1_msg
     call print_string
     
-    ; Jump to Ada kernel - THIS MUST MATCH THE EXPORT
+    ; Call Ada kernel
     call _ada_boot
     
-    ; If we get here, Ada returned (shouldn't happen)
+    ; If we get here, Ada returned
     mov edi, 0xb8000 + 160  ; Second line
     mov esi, ada_returned_msg
     call print_string
@@ -41,5 +41,5 @@ print_string:
 .done:
     ret
 
-boot_msg: db 'ADA ENTRY POINT REACHED', 0
+step1_msg: db 'STEP 1: Assembly Entry Reached', 0
 ada_returned_msg: db 'ERROR: Ada returned!', 0
