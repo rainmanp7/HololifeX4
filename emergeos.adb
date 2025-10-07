@@ -422,7 +422,7 @@ package body EmergeOS is
    -- MAIN OS PROCEDURE (FIXED)
    -- =======================================
    procedure EmergeOS is
-      pragma Export (C, EmergeOS, "_ada_boot");  -- ✅ CORRECT: Inside procedure declaration
+      
    begin
       Initialize_UART;
       Serial_Put_Line("=== HOLOXLIFE OS BOOTING ===");
@@ -505,5 +505,5 @@ package body EmergeOS is
          null;
       end loop;
    end EmergeOS;
-
+pragma Export (C, EmergeOS, "_ada_boot");  -- ✅ CORRECT: Inside procedure declaration
 end EmergeOS;
