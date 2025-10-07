@@ -26,6 +26,10 @@ gnat.adc:
 	@echo "pragma Restrictions (No_Protected_Types);" >> gnat.adc
 	@echo "pragma Restrictions (No_Finalization);" >> gnat.adc
 
+# Assembly entry point (CRITICAL FIX)
+kernel_entry.o: kernel_entry.asm
+	$(ASM) -f elf32 kernel_entry.asm -o kernel_entry.o
+
 # Individual object compilation
 pulse_types.o: pulse_types.ads gnat.adc
 	$(GCC) $(ADAFLAGS) pulse_types.ads -o pulse_types.o
@@ -50,10 +54,10 @@ uart.o: uart.adb uart.ads gnat.adc
 emergeos.o: emergeos.adb emergeos.ads pulse_types.o pulse_entities.o pulse_sync.o hardware_entity.o temporal_entity.o uart.o gnat.adc
 	$(GCC) $(ADAFLAGS) emergeos.adb -o emergeos.o
 
-# Link kernel
-kernel.bin: emergeos.o pulse_types.o pulse_entities.o pulse_sync.o hardware_entity.o temporal_entity.o uart.o
+# Link kernel (CRITICAL FIX - kernel_entry.o must be FIRST)
+kernel.bin: kernel_entry.o emergeos.o pulse_types.o pulse_entities.o pulse_sync.o hardware_entity.o temporal_entity.o uart.o
 	@echo "🔗 Linking HoloXlife OS kernel..."
-	$(LD) $(LDFLAGS) -o kernel.elf emergeos.o pulse_types.o pulse_entities.o pulse_sync.o hardware_entity.o temporal_entity.o uart.o
+	$(LD) $(LDFLAGS) -o kernel.elf kernel_entry.o emergeos.o pulse_types.o pulse_entities.o pulse_sync.o hardware_entity.o temporal_entity.o uart.o
 	$(OBJCOPY) -O binary kernel.elf kernel.bin
 	@KERNEL_SIZE=$$(stat -f%z kernel.bin 2>/dev/null || stat -c%s kernel.bin 2>/dev/null); \
 	echo "✅ Kernel: $$KERNEL_SIZE bytes"
