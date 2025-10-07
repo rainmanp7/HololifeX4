@@ -1,11 +1,11 @@
 /* HoloXlife Pure Ada OS Linker Script - PROTECTED MODE */
 OUTPUT_FORMAT("elf32-i386")
-ENTRY(_start)  /* CHANGED: Use _start from kernel_entry.asm, not _ada_boot */
+ENTRY(_start)  /* Use assembly entry point */
 SECTIONS
 {
-    . = 0x10000;  /* ← CHANGED from 0x8000 */
+    . = 0x10000;
     .text : {
-        *(.text._start)    /* CRITICAL: Ensure entry point is first */
+        *(.text._start)    /* Ensure entry point is first */
         *(.text._ada_boot)
         *(.text)
         *(.text.*)
