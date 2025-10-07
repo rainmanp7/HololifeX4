@@ -418,6 +418,11 @@ package body EmergeOS is
       Display_Network_Status;
    end Run_Enhanced_Pulse_Cycle;
 
+   -- Declare procedure specification with export pragma
+   procedure EmergeOS;
+   pragma Export (C, EmergeOS, "_ada_boot");
+
+   -- Now define the procedure body
    procedure EmergeOS is
    begin
       Initialize_UART;
@@ -501,8 +506,5 @@ package body EmergeOS is
          null;
       end loop;
    end EmergeOS;
-
-   -- ✅ PRAGMA EXPORT PLACED IN SAME DECLARATIVE PART
-   pragma Export (C, EmergeOS, "_ada_boot");
 
 end EmergeOS;
