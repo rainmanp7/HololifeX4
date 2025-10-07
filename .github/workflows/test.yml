@@ -33,14 +33,14 @@ jobs:
     - name: Build That OS!
       run: |
         echo "🔨 BUILDING HOLOXLIFE PURE ADA OS..."
-        make emergeos.img
-        echo "✅ Image built: $(stat -c%s emergeos.img) bytes"
+        make boot.img
+        echo "✅ Image built: $(stat -c%s boot.img) bytes"
 
     - name: Test Boot with Proven Method
       run: |
         echo "🚀 BOOTING OS..."
         timeout 15s qemu-system-i386 \
-          -drive file=emergeos.img,format=raw,if=floppy \
+          -drive file=boot.img,format=raw,if=floppy \
           -serial file:serial.log \
           -nographic \
           || true
