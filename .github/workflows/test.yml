@@ -1,4 +1,4 @@
-name: HoloXlife Pure Ada OS - Hail Mary
+name: HoloXlife Pure Ada OS Build
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  hail-mary:
+  build-test:
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -15,7 +15,7 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v4
 
-    - name: Install Everything
+    - name: Install Dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y \
@@ -25,68 +25,38 @@ jobs:
           gcc-10-multilib \
           qemu-system-i386
 
-    - name: Nuclear Clean (Just in Case)
+    - name: Build OS (Makefile's Job)
       run: |
-        make clean || true
-        rm -f *.img *.bin *.elf *.o *.log || true
+        echo "=== Letting Makefile do its job ==="
+        make emergeos.img
+        echo "Build completed"
 
-    - name: Build That OS!
+    - name: Verify Build Output
       run: |
-        echo "🔨 BUILDING HOLOXLIFE PURE ADA OS..."
-        make boot.img
-        echo "✅ Image built: $(stat -c%s boot.img) bytes"
+        echo "=== Checking what Makefile produced ==="
+        ls -la *.img *.bin *.elf || echo "No build artifacts found"
+        [ -f emergeos.img ] && echo "✅ emergeos.img created: $(stat -c%s emergeos.img) bytes" || echo "❌ emergeos.img missing"
 
-    - name: Test Boot with Proven Method
+    - name: Test Boot
       run: |
-        echo "🚀 BOOTING OS..."
-        timeout 15s qemu-system-i386 \
-          -drive file=boot.img,format=raw,if=floppy \
-          -serial file:serial.log \
+        echo "=== Testing boot ==="
+        timeout 10s qemu-system-i386 \
+          -drive file=emergeos.img,format=raw,if=floppy \
+          -d cpu_reset,guest_errors \
+          -no-reboot \
           -nographic \
-          || true
+          > qemu_output.log 2>&1 || true
         
-        echo "=== SERIAL OUTPUT ==="
-        cat serial.log
+        echo "=== Boot Analysis ==="
+        grep -i "triple fault\|cpu reset\|terminating" qemu_output.log || echo "No significant errors detected"
 
-    - name: Check for Any Signs of Life
-      run: |
-        echo "🔍 ANALYZING BOOT RESULTS..."
-        if [ -f serial.log ]; then
-          echo "Serial log size: $(stat -c%s serial.log) bytes"
-          if grep -q -i "holoxlife\|ada\|kernel\|boot\|success" serial.log; then
-            echo "🎉 WE HAVE A PULSE! OS messages detected!"
-          else
-            echo "⚠️ Boot worked but no OS messages - check kernel loading"
-            echo "=== LAST 20 LINES ==="
-            tail -20 serial.log
-          fi
-        else
-          echo "❌ No serial output - bootloader didn't run"
-        fi
-
-    - name: Upload Everything
-      if: always()
+    - name: Upload Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: hail-mary-results
+        name: build-artifacts
         path: |
-          *.img
-          *.bin  
+          emergeos.img
+          *.bin
           *.elf
-          *.log
-          Makefile
-          *.adb
-          *.ads
-          *.asm
-
-    - name: Final Verdict
-      if: always()
-      run: |
-        echo ""
-        echo "========================================"
-        echo "🕹️  HOLOXLIFE HAIL MARY RESULTS"
-        echo "========================================"
-        echo "✅ Build: $([ -f emergeos.img ] && echo 'SUCCESS' || echo 'FAILED')"
-        echo "✅ Boot: $([ -f serial.log ] && echo 'RAN' || echo 'NO OUTPUT')"
-        echo "✅ Pure Ada: CONFIRMED"
-        echo "========================================"
+          *.o
+          qemu_output.log
