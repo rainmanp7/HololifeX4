@@ -505,5 +505,4 @@ package body EmergeOS is
          null;
       end loop;
    end EmergeOS;
-pragma Export (C, EmergeOS, "_ada_boot");  -- ✅ CORRECT: Inside procedure declaration
 end EmergeOS;
