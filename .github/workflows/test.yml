@@ -29,20 +29,22 @@ jobs:
 
     - name: Build Bootloader
       run: |
-        # Calculate sectors needed
-        KERNEL_SIZE=$$(stat -c%s test_kernel.bin)
-        SECTORS=$$(( (KERNEL_SIZE + 511) / 512 ))
-        nasm -f bin -DHOLOGRAPHIC_KERNEL_SECTORS=$$SECTORS boot.asm -o boot.bin
+        # Calculate sectors needed - FIXED SYNTAX
+        KERNEL_SIZE=$(stat -c%s test_kernel.bin)
+        SECTORS=$(( (KERNEL_SIZE + 511) / 512 ))
+        echo "Kernel size: $KERNEL_SIZE bytes, Sectors: $SECTORS"
+        nasm -f bin -DHOLOGRAPHIC_KERNEL_SECTORS=$SECTORS boot.asm -o boot.bin
 
     - name: Create Image
       run: |
         dd if=/dev/zero of=test.img bs=512 count=2880 status=none
         dd if=boot.bin of=test.img conv=notrunc status=none
         dd if=test_kernel.bin of=test.img bs=512 seek=1 conv=notrunc status=none
+        echo "Image created: test.img"
 
     - name: Test Boot
       run: |
-        echo "Testing boot process (should see VGA output)..."
+        echo "Testing boot process..."
         timeout 5s qemu-system-i386 \
           -fda test.img \
           -serial stdio \
