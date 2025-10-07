@@ -1,4 +1,4 @@
-name: Basic Bootloader Test
+name: Bootloader Debug Test
 
 on:
   push:
@@ -20,78 +20,78 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y nasm qemu-system-i386 xxd
 
-    - name: Build Test Kernel
+    - name: Verify Bootloader Signature
+      run: |
+        echo "=== Checking Bootloader ==="
+        # First, let's check if boot.asm compiles correctly
+        nasm -f bin boot.asm -o boot.bin
+        echo "Bootloader size: $(stat -c%s boot.bin) bytes"
+        
+        # Check the boot signature at bytes 510-511
+        echo "Boot signature (should be 55 AA):"
+        xxd -s 510 -l 2 boot.bin
+        
+        # Check if the file ends properly
+        echo "Last 16 bytes of bootloader:"
+        xxd -s 496 -l 16 boot.bin
+
+    - name: Build Minimal Test Kernel
       run: |
         echo "=== Building Test Kernel ==="
         nasm -f elf32 test_entry.asm -o test_kernel.o
         ld -m elf_i386 -Ttext 0x10000 -nostdlib -static test_kernel.o -o test_kernel.elf
         objcopy -O binary test_kernel.elf test_kernel.bin
         echo "Kernel size: $(stat -c%s test_kernel.bin) bytes"
-        echo "First 64 bytes of kernel:"
-        xxd -l 64 test_kernel.bin
 
-    - name: Build Bootloader
+    - name: Create Proper Bootable Image
       run: |
-        echo "=== Building Bootloader ==="
-        KERNEL_SIZE=$(stat -c%s test_kernel.bin)
-        SECTORS=$(( (KERNEL_SIZE + 511) / 512 ))
-        echo "Kernel: $KERNEL_SIZE bytes, Sectors: $SECTORS"
-        nasm -f bin -DHOLOGRAPHIC_KERNEL_SECTORS=$SECTORS boot.asm -o boot.bin
-        echo "Bootloader size: $(stat -c%s boot.bin) bytes"
-        echo "Boot signature:"
-        xxd -s 510 -l 2 boot.bin
-
-    - name: Create Image
-      run: |
-        echo "=== Creating Disk Image ==="
+        echo "=== Creating Bootable Image ==="
+        # Create image with explicit boot sector
         dd if=/dev/zero of=test.img bs=512 count=2880 status=none
+        
+        # Write bootloader to first sector
         dd if=boot.bin of=test.img conv=notrunc status=none
+        
+        # Write kernel starting at sector 2
         dd if=test_kernel.bin of=test.img bs=512 seek=1 conv=notrunc status=none
-        echo "Image size: $(stat -c%s test.img) bytes"
-        echo "First sector (bootloader):"
-        xxd -l 512 test.img
-        echo "Second sector (kernel start):"
-        xxd -s 512 -l 64 test.img
+        
+        echo "Final image structure:"
+        echo "Sector 0: Bootloader"
+        echo "Sector 1+: Kernel ($(stat -c%s test_kernel.bin) bytes)"
+        xxd -l 1024 test.img | head -20
 
-    - name: Test Boot with Serial Logging
+    - name: Test Boot with Explicit Format
       run: |
-        echo "=== Testing Boot Process ==="
-        rm -f serial.log
+        echo "=== Testing Boot with Explicit Format ==="
         timeout 10s qemu-system-i386 \
-          -fda test.img \
-          -serial file:serial.log \
+          -drive file=test.img,format=raw,if=floppy \
+          -serial stdio \
           -monitor stdio \
           -d cpu_reset,guest_errors \
           -no-reboot \
-          -display none 2>qemu_error.log || true
+          -display none > boot_test.log 2>&1 || true
         
-        echo "=== Serial Output ==="
-        if [ -f serial.log ]; then
-          cat serial.log
-        else
-          echo "No serial output captured"
-        fi
-        
-        echo "=== QEMU Errors ==="
-        cat qemu_error.log
+        echo "=== Boot Test Output ==="
+        cat boot_test.log
 
-    - name: Test Boot with VGA (Alternative)
+    - name: Alternative Boot Test
       run: |
-        echo "=== Testing with VGA ==="
+        echo "=== Alternative Boot Test ==="
         timeout 5s qemu-system-i386 \
           -fda test.img \
-          -serial stdio \
-          -vga std \
-          -display none > vga_output.log 2>&1 || true
-        echo "VGA output:"
-        cat vga_output.log
+          -serial mon:stdio \
+          -d int,cpu_reset \
+          -no-reboot \
+          -display none > alt_test.log 2>&1 || true
+        
+        echo "=== Alternative Test Output ==="
+        cat alt_test.log
 
-    - name: Upload Results
+    - name: Upload Debug Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: boot-test-results
+        name: boot-debug
         path: |
-          test.img
-          boot.bin
-          test_kernel.bin
+          *.bin
+          *.img
           *.log
