@@ -81,27 +81,25 @@ emergeos.img: boot.bin kernel.bin
 	@IMG_SIZE=$$(stat -f%z $@ 2>/dev/null || stat -c%s $@ 2>/dev/null); \
 	echo "✅ OS Image: $$IMG_SIZE bytes (emergeos.img)"
 
-# Run in QEMU with serial output
+# Run in QEMU - FIXED BOOT METHOD
 run: emergeos.img
 	@echo "🚀 Booting HoloXlife Pure Ada Operating System..."
 	@echo "   📺 VGA: QEMU window"
 	@echo "   📝 Serial: serial.log"
-	@echo "   🐛 Debug: qemu.log"
-	@echo "=========================================="
 	@rm -f serial.log qemu.log
 	qemu-system-i386 \
-		-drive format=raw,file=emergeos.img,if=ide \
+		-drive file=emergeos.img,format=raw,if=floppy \
+		-boot a \
 		-serial file:serial.log \
-		-D qemu.log -d int,cpu_reset,guest_errors \
-		-display sdl \
-		-no-reboot -no-shutdown
+		-m 32M \
+		-no-reboot \
+		-no-shutdown
 	@echo ""
-	@echo "=========================================="
 	@if [ -f serial.log ]; then \
 		echo "📝 Serial Output:"; \
 		cat serial.log; \
 	else \
-		echo "⚠️  No serial output captured"; \
+		echo "⚠️  No serial output"; \
 	fi
 
 # Debug mode - shows more verbose output
