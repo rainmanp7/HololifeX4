@@ -1,56 +1,30 @@
-# HoloXlife Pure Ada OS Makefile - MINIMAL BOOT TEST
+# Test with pure assembly first
 ASM = nasm
-GCC = gcc-10
 LD = ld
 OBJCOPY = objcopy
 
-ADAFLAGS = -x ada -gnat2012 -gnatwa -gnatwo -gnatp -O0 \
-           -m32 -nostdlib -nodefaultlibs \
-           -fno-stack-protector -static -c \
-           -gnatec=gnat.adc
+all: test.img
 
-LDFLAGS = -m elf_i386 -T linker.ld --nmagic -nostdlib -static
+test_entry.o: test_entry.asm
+	$(ASM) -f elf32 test_entry.asm -o test_entry.o
 
-.PHONY: all clean run
+test.bin: test_entry.o
+	$(LD) -m elf_i386 -T linker.ld -o test.elf test_entry.o
+	$(OBJCOPY) -O binary test.elf test.bin
 
-all: emergeos.img
-
-gnat.adc:
-	@echo "pragma Restrictions (No_Exceptions);" > gnat.adc
-	@echo "pragma Restrictions (No_Implicit_Heap_Allocations);" >> gnat.adc
-	@echo "pragma Restrictions (No_Tasking);" >> gnat.adc
-
-kernel_entry.o: kernel_entry.asm
-	$(ASM) -f elf32 kernel_entry.asm -o kernel_entry.o
-
-# ONLY compile emergeos - no other packages
-emergeos.o: emergeos.adb emergeos.ads gnat.adc
-	$(GCC) $(ADAFLAGS) emergeos.adb -o emergeos.o
-
-kernel.bin: kernel_entry.o emergeos.o
-	@echo "🔗 Linking Minimal Ada Kernel..."
-	$(LD) $(LDFLAGS) -o kernel.elf kernel_entry.o emergeos.o
-	$(OBJCOPY) -O binary kernel.elf kernel.bin
-	@echo "✅ Kernel built"
-
-boot.bin: boot.asm kernel.bin
-	@KERNEL_SIZE=$$(stat -f%z kernel.bin 2>/dev/null || stat -c%s kernel.bin 2>/dev/null); \
+boot.bin: boot.asm test.bin
+	@KERNEL_SIZE=$$(stat -f%z test.bin 2>/dev/null || stat -c%s test.bin 2>/dev/null); \
 	SECTORS=$$(( ($$KERNEL_SIZE + 511) / 512 )); \
 	nasm -f bin -DHOLOGRAPHIC_KERNEL_SECTORS=$$SECTORS boot.asm -o boot.bin
 
-emergeos.img: boot.bin kernel.bin
+test.img: boot.bin test.bin
 	dd if=/dev/zero of=$@ bs=512 count=2880 status=none
 	dd if=boot.bin of=$@ conv=notrunc status=none
-	dd if=kernel.bin of=$@ bs=512 seek=1 conv=notrunc status=none
-	@echo "✅ OS image created"
+	dd if=test.bin of=$@ bs=512 seek=1 conv=notrunc status=none
+	@echo "✅ Test image created"
 
-run: emergeos.img
-	@echo "🚀 Booting Minimal Ada Kernel..."
-	qemu-system-i386 \
-		-drive file=emergeos.img,format=raw,if=floppy \
-		-serial stdio \
-		-no-reboot -no-shutdown
+run: test.img
+	qemu-system-i386 -drive file=test.img,format=raw,if=floppy -serial stdio
 
 clean:
-	rm -f *.bin *.o *.img *.elf *.ali gnat.adc
-	@echo "🧹 Cleaned"
+	rm -f *.bin *.o *.img *.elf
