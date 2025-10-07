@@ -15,61 +15,36 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v4
 
-    - name: Install QEMU
+    - name: Install Dependencies (QEMU and NASM)
       run: |
         sudo apt-get update
-        sudo apt-get install -y qemu-system-i386
-
-    - name: Create Minimal Bootloader
-      run: |
-        echo "=== Creating minimal bootloader ==="
-        cat > minimal.asm << 'EOF'
-[org 0x7c00]
-[bits 16]
-start:
-    mov ax, 0
-    mov ds, ax
-    mov es, ax 
-    mov ss, ax
-    mov sp, 0x7c00
-    
-    ; Print boot message
-    mov si, msg
-print_loop:
-    lodsb
-    test al, al
-    jz hang
-    mov ah, 0x0e
-    int 0x10
-    jmp print_loop
-
-hang:
-    jmp hang
-
-msg: db 'BOOTED!', 0
-
-times 510-($-$$) db 0
-dw 0xaa55
-EOF
+        # Install qemu for testing and nasm for assembly
+        sudo apt-get install -y qemu-system-i386 nasm 
         
+    - name: Assemble Bootloader
+      # We now assemble the external file, avoiding the YAML parser conflict entirely.
+      run: |
+        echo "=== Assembling minimal bootloader ==="
         nasm -f bin minimal.asm -o boot.bin
         echo "Bootloader created: $(stat -c%s boot.bin) bytes"
 
     - name: Create Bootable Image
       run: |
+        # Create a floppy image file
         dd if=/dev/zero of=boot.img bs=512 count=2880
-        dd if=boot.bin of=boot.img conv=notrunc
+        # Write the bootloader to the first sector of the image
+        dd if=boot.bin of=boot.img conv=notrunc status=none
         echo "Image created"
 
     - name: Test Boot
       run: |
         echo "=== Testing boot ==="
+        # Run QEMU with the floppy image and redirect serial output to a log file
         timeout 3s qemu-system-i386 \
           -drive file=boot.img,format=raw,if=floppy \
-          -serial stdio \
-          -display none \
-          -monitor none \
-          > boot_output.log 2>&1 || true
+          -serial file:boot_output.log \
+          -nographic \
+          || true
         
         echo "=== Boot Output ==="
         cat boot_output.log
@@ -80,6 +55,7 @@ EOF
           echo "🎉 SUCCESS: Bootloader executed!"
         else
           echo "❌ FAILED: No boot output detected"
-          echo "Debug info:"
+          echo "Debug info: Last 2 lines of the image's first 512 bytes"
           xxd -l 512 boot.img | tail -2
+          exit 1 # Fail the step if BOOTED is not found
         fi
