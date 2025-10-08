@@ -7,6 +7,7 @@ with Pulse_Sync; use Pulse_Sync;
 with Hardware_Entity; use Hardware_Entity;
 with Temporal_Entity; use Temporal_Entity;
 with System.Machine_Code; use System.Machine_Code;
+with Unchecked_Conversion; -- The final key.
 
 with UART; use UART;
 
@@ -17,6 +18,17 @@ package body EmergeOS is
    for Byte'Size use 8;
    type Word is mod 2**16;
    pragma Unreferenced (Word);
+
+   -- =========================================================================
+   -- FINAL FIX #1: THE OS's CONVERSION TOOL
+   -- Since we are not using a standard library, we must create our own tool
+   -- to convert a System.Address to a comparable Integer_Address.
+   -- This is the final rite of passage.
+   -- =========================================================================
+   function To_Integer is new Unchecked_Conversion (
+      Source => System.Address,
+      Target => System.Storage_Elements.Integer_Address
+   );
 
    -- ================================
    -- MEMORY-MAPPED HARDWARE
@@ -52,8 +64,7 @@ package body EmergeOS is
    for Holo_Matrix'Address use System.Storage_Elements.To_Address(HOLO_BASE);
    pragma Import (Ada, Holo_Matrix);
 
-   -- ... all of your other procedures (Initialize_UART, Console_Clear, etc.) are perfect ...
-   -- ... they are included here unchanged ...
+   -- ... all of your other procedures are perfect and unchanged ...
    procedure Initialize_UART is
    begin
       UART.Initialize;
@@ -256,11 +267,6 @@ package body EmergeOS is
       Enhanced_New_Line;
       Enhanced_New_Line;
    end Initialize_Enhanced_Pulse_Network;
-
-   -- ======================================================================
-   -- FIX #1: DEFINE ALL SUB-PROCEDURES BEFORE THE MAIN LOOP THAT CALLS THEM
-   -- ======================================================================
-
    procedure Evolve_Specialized_Entities is
    begin
       Evolve_Phase(Hardware_Entity_Instance);
@@ -269,7 +275,6 @@ package body EmergeOS is
       Pulse_Network.Entities(2) := Temporal_Entity_Instance.Base;
       Pulse_Network.Cycle_Count := Pulse_Network.Cycle_Count + 1;
    end Evolve_Specialized_Entities;
-
    procedure Process_Entity_Flashes is
       Flashing_Entities : Local_Entity_Array;
       Flash_Count : Natural;
@@ -326,7 +331,6 @@ package body EmergeOS is
          end loop;
       end if;
    end Process_Entity_Flashes;
-
    procedure Check_Network_Consensus is
       Has_Consensus : Boolean;
    begin
@@ -350,7 +354,6 @@ package body EmergeOS is
          end if;
       end if;
    end Check_Network_Consensus;
-
    procedure Display_Network_Status is
       Current_Coherence : Natural;
    begin
@@ -377,7 +380,6 @@ package body EmergeOS is
          Enhanced_New_Line;
       end if;
    end Display_Network_Status;
-
    procedure Run_Enhanced_Pulse_Cycle is
    begin
       Cycle_Count := Cycle_Count + 1;
@@ -399,11 +401,11 @@ package body EmergeOS is
       -- STEP 1: MANUALLY CLEAR THE BSS SECTION
       declare
          Current_Address : System.Address := BSS_Start;
-         End_Address_Int : constant Integer_Address := System.Storage_Elements.Address_To_Integer(BSS_End);
+         End_Address_Int : constant Integer_Address := To_Integer(BSS_End);
          B               : Byte with Address => Current_Address;
       begin
-         -- FIX #2: Use the full, unambiguous name for the conversion function.
-         while System.Storage_Elements.Address_To_Integer(Current_Address) < End_Address_Int loop
+         -- FINAL FIX #2: Use our new, self-made conversion function.
+         while To_Integer(Current_Address) < End_Address_Int loop
             B := 0;
             Current_Address := Current_Address + 1;
          end loop;
