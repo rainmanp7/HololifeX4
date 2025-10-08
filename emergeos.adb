@@ -52,8 +52,7 @@ package body EmergeOS is
    for Holo_Matrix'Address use System.Storage_Elements.To_Address(HOLO_BASE);
    pragma Import (Ada, Holo_Matrix);
 
-   -- ... all of your other procedures (Initialize_UART, Console_Clear, etc.) are perfect ...
-   -- ... they are included here unchanged ...
+   -- ... all of your other procedures are perfect and unchanged ...
    procedure Initialize_UART is
    begin
       UART.Initialize;
@@ -256,14 +255,14 @@ package body EmergeOS is
       Enhanced_New_Line;
       Enhanced_New_Line;
    end Initialize_Enhanced_Pulse_Network;
-   procedure Evolve_Specialized_Entities is
+   procedure Evolve_Special_Entities is
    begin
       Evolve_Phase(Hardware_Entity_Instance);
       Pulse_Network.Entities(1) := Hardware_Entity_Instance.Base;
       Evolve_Phase(Temporal_Entity_Instance);
       Pulse_Network.Entities(2) := Temporal_Entity_Instance.Base;
       Pulse_Network.Cycle_Count := Pulse_Network.Cycle_Count + 1;
-   end Evolve_Specialized_Entities;
+   end Evolve_Special_Entities;
    procedure Process_Entity_Flashes is
       Flashing_Entities : Local_Entity_Array;
       Flash_Count : Natural;
@@ -381,8 +380,7 @@ package body EmergeOS is
    -- =========================================================================
    -- MAIN OS PROCEDURE (FINAL HARMONIZATION)
    -- =========================================================================
-   procedure EmergeOS is -- NOTE: Name matches the error log context
-      -- These symbols are defined by our linker script.
+   procedure EmergeOS is
       BSS_Start : System.Address;
       pragma Import (Assembly, BSS_Start, "__bss_start");
       BSS_End   : System.Address;
@@ -390,13 +388,13 @@ package body EmergeOS is
    begin
       -- STEP 1: MANUALLY CLEAR THE BSS SECTION
       declare
-         -- FIX #1: Use the full, visible type name 'System.Address' throughout
-         Current_Address : System.Address := To_Address (System.Address'Pos (BSS_Start));
-         End_Address     : System.Address := To_Address (System.Address'Pos (BSS_End));
+         -- FIX: The starting address is already of the correct type. No conversion needed.
+         Current_Address : System.Address := BSS_Start;
+         End_Address_Int : constant Integer_Address := Address_To_Integer(BSS_End);
          B               : Byte with Address => Current_Address;
       begin
-         -- FIX #2: Compare the numeric positions of the addresses, not the private types
-         while System.Address'Pos(Current_Address) < System.Address'Pos(End_Address) loop
+         -- FIX: Compare the numeric positions of the addresses using the correct function.
+         while Address_To_Integer(Current_Address) < End_Address_Int loop
             B := 0;
             Current_Address := Current_Address + 1;
          end loop;
