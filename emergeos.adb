@@ -1,5 +1,4 @@
--- emergeos.adb: HoloXlife OS (Protocol Harmonized and Bootable)
--- Complete integration with Hardware + Temporal entities and firefly coupling
+-- emergeos.adb: HoloXlife OS (Final Protocol Harmonization)
 with System;
 with System.Storage_Elements;
 use System.Storage_Elements;
@@ -15,7 +14,7 @@ package body EmergeOS is
 
    -- Basic types for OS development
    type Byte is mod 2**8;
-   for Byte'Size use 8; -- Ensure Byte is 8 bits
+   for Byte'Size use 8;
    type Word is mod 2**16;
    pragma Unreferenced (Word);
 
@@ -55,7 +54,6 @@ package body EmergeOS is
 
    -- ... all of your other procedures (Initialize_UART, Console_Clear, etc.) are perfect ...
    -- ... they are included here unchanged ...
-
    procedure Initialize_UART is
    begin
       UART.Initialize;
@@ -381,9 +379,9 @@ package body EmergeOS is
    end Run_Enhanced_Pulse_Cycle;
 
    -- =========================================================================
-   -- MAIN OS PROCEDURE (HARMONIZED)
+   -- MAIN OS PROCEDURE (FINAL HARMONIZATION)
    -- =========================================================================
-   procedure Boot is
+   procedure EmergeOS is -- FIX #1: Name harmonized with emergeos.ads
       -- These symbols are defined by our linker script. They give us the memory
       -- addresses of the BSS section, which we must clear ourselves.
       BSS_Start : System.Address;
@@ -397,9 +395,10 @@ package body EmergeOS is
       -- responsible for initializing our own memory to prevent conflicts.
       -- ======================================================================
       declare
-         Current_Address : Address := To_Address (Address'Pos (BSS_Start));
-         End_Address     : Address := To_Address (Address'Pos (BSS_End));
-         B             : Byte with Address => Current_Address;
+         -- FIX #2: Use the full, visible type name 'System.Address'
+         Current_Address : System.Address := To_Address (Address'Pos (BSS_Start));
+         End_Address     : System.Address := To_Address (Address'Pos (BSS_End));
+         B               : Byte with Address => Current_Address;
       begin
          while Current_Address < End_Address loop
             B := 0;
@@ -489,10 +488,8 @@ package body EmergeOS is
       Enhanced_Put_String ("=============================================");
       Enhanced_New_Line;
       loop
-         -- Infinite halt loop to signify the end of the current program.
-         -- The OS is now stable and waiting for the next phase.
          Asm ("hlt", Volatile => True);
       end loop;
-   end Boot;
+   end EmergeOS; -- FIX #1: Name harmonized with emergeos.ads
 
 end EmergeOS;
