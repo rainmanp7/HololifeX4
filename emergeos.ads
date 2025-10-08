@@ -1,5 +1,5 @@
--- emergeos.ads - Minimal Boot Test
 package EmergeOS is
-   procedure Boot;
-   pragma Export (C, Boot, "_ada_boot");
+   pragma Elaborate_Body;
+   procedure EmergeOS;
+   pragma Export (C, EmergeOS, "_ada_boot");
 end EmergeOS;
