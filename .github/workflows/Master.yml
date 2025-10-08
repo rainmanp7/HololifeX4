@@ -41,6 +41,7 @@ jobs:
 
       # Step 4: Build the OS image
       - name: Build emergeos.img
+        run: make clean
         run: make all
 
       # Step 5: Run a quick "smoke test" to verify boot
