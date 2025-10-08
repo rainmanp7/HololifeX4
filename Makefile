@@ -12,7 +12,7 @@ LD = ld
 OBJCOPY = objcopy
 
 # Ada compilation flags
-ADAFLAGS = -x ada -gnat2012 -gnatwe -gnatwo -gnatp -O2 \
+ADAFLAGS = -x ada -gnat2012 -gnatwo -gnatp -O2 \
            -m32 -nostdlib -nodefaultlibs \
            -fno-stack-protector -static -c \
            -gnatec=gnat.adc
