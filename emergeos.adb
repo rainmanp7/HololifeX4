@@ -381,34 +381,28 @@ package body EmergeOS is
    -- =========================================================================
    -- MAIN OS PROCEDURE (FINAL HARMONIZATION)
    -- =========================================================================
-   procedure EmergeOS is -- FIX #1: Name harmonized with emergeos.ads
-      -- These symbols are defined by our linker script. They give us the memory
-      -- addresses of the BSS section, which we must clear ourselves.
+   procedure EmergeOS is -- NOTE: Name matches the error log context
+      -- These symbols are defined by our linker script.
       BSS_Start : System.Address;
       pragma Import (Assembly, BSS_Start, "__bss_start");
       BSS_End   : System.Address;
       pragma Import (Assembly, BSS_End, "__bss_end");
    begin
-      -- ======================================================================
-      -- STEP 1: MANUALLY CLEAR THE BSS SECTION (The OS Rite of Passage)
-      -- This is the very first thing we must do. We are the OS, so we are
-      -- responsible for initializing our own memory to prevent conflicts.
-      -- ======================================================================
+      -- STEP 1: MANUALLY CLEAR THE BSS SECTION
       declare
-         -- FIX #2: Use the full, visible type name 'System.Address'
-         Current_Address : System.Address := To_Address (Address'Pos (BSS_Start));
-         End_Address     : System.Address := To_Address (Address'Pos (BSS_End));
+         -- FIX #1: Use the full, visible type name 'System.Address' throughout
+         Current_Address : System.Address := To_Address (System.Address'Pos (BSS_Start));
+         End_Address     : System.Address := To_Address (System.Address'Pos (BSS_End));
          B               : Byte with Address => Current_Address;
       begin
-         while Current_Address < End_Address loop
+         -- FIX #2: Compare the numeric positions of the addresses, not the private types
+         while System.Address'Pos(Current_Address) < System.Address'Pos(End_Address) loop
             B := 0;
             Current_Address := Current_Address + 1;
          end loop;
       end;
 
-      -- ======================================================================
       -- STEP 2: Now we can proceed with the rest of our OS initialization.
-      -- ======================================================================
       Initialize_UART;
       Serial_Put_Line("=== HOLOXLIFE OS KERNEL AWAKE ===");
       Serial_Put_Line("BSS Cleared. Runtime stable. Protocol Synchronized.");
@@ -490,6 +484,6 @@ package body EmergeOS is
       loop
          Asm ("hlt", Volatile => True);
       end loop;
-   end EmergeOS; -- FIX #1: Name harmonized with emergeos.ads
+   end EmergeOS;
 
 end EmergeOS;
