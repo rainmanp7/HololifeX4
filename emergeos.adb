@@ -7,7 +7,7 @@ with Pulse_Sync; use Pulse_Sync;
 with Hardware_Entity; use Hardware_Entity;
 with Temporal_Entity; use Temporal_Entity;
 with System.Machine_Code; use System.Machine_Code;
-with Unchecked_Conversion; -- The final key.
+with Unchecked_Conversion;
 
 with UART; use UART;
 
@@ -20,11 +20,16 @@ package body EmergeOS is
    pragma Unreferenced (Word);
 
    -- =========================================================================
-   -- FINAL FIX #1: THE OS's CONVERSION TOOL
-   -- Since we are not using a standard library, we must create our own tool
-   -- to convert a System.Address to a comparable Integer_Address.
-   -- This is the final rite of passage.
+   -- FINAL FIX #1: THE CANONICAL IMPORT METHOD
+   -- This is the robust, explicit way to import linker symbols in GNAT for
+   -- bare-metal targets. This replaces the old, failing pragma method.
    -- =========================================================================
+   BSS_Start : System.Address;
+   with Import, Convention => Assembly, External_Name => "__bss_start";
+   BSS_End   : System.Address;
+   with Import, Convention => Assembly, External_Name => "__bss_end";
+   
+   -- We create our own tool for address conversion.
    function To_Integer is new Unchecked_Conversion (
       Source => System.Address,
       Target => System.Storage_Elements.Integer_Address
@@ -393,10 +398,6 @@ package body EmergeOS is
    -- MAIN OS PROCEDURE (FINAL HARMONIZATION)
    -- =========================================================================
    procedure EmergeOS is
-      BSS_Start : System.Address;
-      pragma Import (Assembly, BSS_Start, "__bss_start");
-      BSS_End   : System.Address;
-      pragma Import (Assembly, BSS_End, "__bss_end");
    begin
       -- STEP 1: MANUALLY CLEAR THE BSS SECTION
       declare
