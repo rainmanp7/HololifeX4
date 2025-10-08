@@ -24,9 +24,9 @@ package body EmergeOS is
    -- This is the robust, explicit way to import linker symbols in GNAT for
    -- bare-metal targets. This replaces the old, failing pragma method.
    -- =========================================================================
-   BSS_Start : System.Address;
+   BSS_Start : System.Address
    with Import, Convention => Assembly, External_Name => "__bss_start";
-   BSS_End   : System.Address;
+   BSS_End   : System.Address
    with Import, Convention => Assembly, External_Name => "__bss_end";
    
    -- We create our own tool for address conversion.
