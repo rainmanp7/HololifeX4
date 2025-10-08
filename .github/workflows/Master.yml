@@ -40,9 +40,11 @@ jobs:
           echo "Workspace purged of all known temporal artifacts."
 
       # Step 4: Build the OS image
+      # ⚠️ FIX: Combined 'make clean' and 'make all' into a single 'run' block.
       - name: Build emergeos.img
-        run: make clean
-        run: make all
+        run: |
+          make clean
+          make all
 
       # Step 5: Run a quick "smoke test" to verify boot
       - name: Run Smoke Test in QEMU
