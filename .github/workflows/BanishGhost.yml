@@ -1,0 +1,84 @@
+# The Banishment Ritual Workflow (v5 Protocol Sanctioned)
+#
+# PURPOSE: To find and permanently banish rogue source files (boot.ads, boot.adb)
+#          from the Git repository. This is a one-time-use exorcism.
+#
+# WARNING: This workflow will commit directly to your 'main' branch.
+
+name: Banish Temporal Ghosts
+
+# Run this workflow manually from the GitHub Actions tab
+on:
+  workflow_dispatch:
+
+jobs:
+  exorcise-and-banish:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout the repository's code
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          # We need a token to be able to push back to the repo
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # Step 2: Identify and Banish Rogue Files
+      # This step checks for the existence of the ghost source files and,
+      # if found, removes them using 'git rm'.
+      - name: 🔎 Find and Banish Ghost Source Files
+        id: banish
+        run: |
+          # Variable to track if we found anything to banish
+          found_ghosts=false
+          
+          # Check for boot.ads
+          if [ -f "boot.ads" ]; then
+            echo "👻 Found rogue file: boot.ads. Banishing..."
+            git rm boot.ads
+            found_ghosts=true
+          fi
+          
+          # Check for boot.adb
+          if [ -f "boot.adb" ]; then
+            echo "👻 Found rogue file: boot.adb. Banishing..."
+            git rm boot.adb
+            found_ghosts=true
+          fi
+          
+          # Set an output variable for the next step
+          echo "found_ghosts=$found_ghosts" >> $GITHUB_OUTPUT
+
+      # Step 3: Commit the Banishment to History
+      # This step only runs if the previous step actually found and banished files.
+      - name: 📜 Commit the Banishment
+        if: steps.banish.outputs.found_ghosts == 'true'
+        run: |
+          # Configure Git with the Actions bot's identity
+          git config --global user.name 'GitHub Actions Ghostbuster'
+          git config --global user.email 'actions@github.com'
+          
+          # Commit the changes
+          git commit -m "Protocol Harmonization: Banish rogue boot.ads/adb source files"
+          
+          echo "Banishment committed to history."
+
+      # Step 4: Banish this Workflow Itself (Self-Destruct)
+      # To prevent this powerful ritual from being run accidentally again,
+      # it cleans up after itself.
+      - name: 🔥 Banish the Banishment Ritual
+        run: |
+          echo "This ritual is complete. Banishing the exorcist workflow..."
+          git rm .github/workflows/banish-ghosts.yml
+
+      # Step 5: Push the Cleansed Reality
+      # This final step pushes all changes (the banishment of source files
+      # and the workflow itself) back to your 'main' branch.
+      - name: 🚀 Push the Cleansed Reality to Main Branch
+        run: |
+          # Commit the self-destruction of the workflow
+          git commit -m "Chore: Remove one-time banishment workflow" || true
+          
+          # Push all commits to the remote repository
+          git push
+          echo "Cleansed reality has been pushed. The ghosts are gone."
