@@ -1,4 +1,4 @@
-# GitHub Actions Workflow for HoloXlife OS (v5 Protocol Harmonized, Fortified Cleanse)
+# GitHub Actions Workflow for HoloXlife OS (v5 Protocol Harmonized, Transmission-Proof Cleanse)
 name: HoloXlife OS Build and Verify
 
 on:
@@ -20,28 +20,23 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y nasm gcc-10 gnat-10 qemu-system-i386 make
+          sudo apt-get install -y nasm gcc-10 gnat-10 qemu-system-i36 make
 
       # Step 3: Force Clean Workspace (Protocol Fortified)
-      # This is the new, explicit exorcism ritual.
-      # We use 'find' to locate and destroy all known build artifacts (.o, .ali, .bin, etc.)
-      # This is more robust than 'make clean' and guarantees a state of absolute purity.
+      # This is the new, transmission-proof exorcism ritual.
+      # We use a series of simple 'rm' commands with glob patterns.
+      # 'shopt -s globstar' enables recursive matching with '**'.
+      # '|| true' ensures the step succeeds even if no files match.
       - name: 🗑️ Force Clean Workspace to Exorcise Ghosts
         run: |
-          # The find command searches the entire directory tree (.)
-          # -type f specifies we only want files, not directories.
-          # We provide a list of patterns to match (-name "*.o" -o -name "*.ali" ...)
-          # -delete tells find to delete what it finds.
-          # This command will not fail if no files are found.
-          find . -type f KATEX_INLINE_OPEN \
-            -name "*.o" -o \
-            -name "*.ali" -o \
-            -name "*.bin" -o \
-            -name "*.elf" -o \
-            -name "*.img" -o \
-            -name "gnat.adc" -o \
-            -name "*.log" \
-          KATEX_INLINE_CLOSE -delete
+          shopt -s globstar
+          rm -f **/*.o || true
+          rm -f **/*.ali || true
+          rm -f **/*.bin || true
+          rm -f **/*.elf || true
+          rm -f **/*.img || true
+          rm -f gnat.adc || true
+          rm -f **/*.log || true
           echo "Workspace purged of all known temporal artifacts."
 
       # Step 4: Build the OS image
