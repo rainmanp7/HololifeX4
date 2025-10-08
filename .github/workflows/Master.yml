@@ -20,7 +20,7 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y nasm gcc-10 gnat-10 qemu-system-i36 make
+          sudo apt-get install -y nasm gcc-10 gnat-10 qemu-system-i386 make
 
       # Step 3: Force Clean Workspace (Protocol Fortified)
       # This is the new, transmission-proof exorcism ritual.
