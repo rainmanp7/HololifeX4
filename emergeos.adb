@@ -17,6 +17,13 @@ package body EmergeOS is
    for Byte'Size use 8;
    type Word is mod 2**16;
    pragma Unreferenced (Word);
+   
+   -- =========================================================================
+   -- FIX #1: FORWARD DECLARATION
+   -- We declare the procedure here so other procedures defined before it
+   -- (like Run_Enhanced_Pulse_Cycle) know that it exists.
+   -- =========================================================================
+   procedure Evolve_Specialized_Entities;
 
    -- ================================
    -- MEMORY-MAPPED HARDWARE
@@ -255,14 +262,17 @@ package body EmergeOS is
       Enhanced_New_Line;
       Enhanced_New_Line;
    end Initialize_Enhanced_Pulse_Network;
-   procedure Evolve_Special_Entities is
+   
+   -- Full definition is now after the forward declaration
+   procedure Evolve_Specialized_Entities is
    begin
       Evolve_Phase(Hardware_Entity_Instance);
       Pulse_Network.Entities(1) := Hardware_Entity_Instance.Base;
       Evolve_Phase(Temporal_Entity_Instance);
       Pulse_Network.Entities(2) := Temporal_Entity_Instance.Base;
       Pulse_Network.Cycle_Count := Pulse_Network.Cycle_Count + 1;
-   end Evolve_Special_Entities;
+   end Evolve_Specialized_Entities;
+   
    procedure Process_Entity_Flashes is
       Flashing_Entities : Local_Entity_Array;
       Flash_Count : Natural;
@@ -388,13 +398,12 @@ package body EmergeOS is
    begin
       -- STEP 1: MANUALLY CLEAR THE BSS SECTION
       declare
-         -- FIX: The starting address is already of the correct type. No conversion needed.
          Current_Address : System.Address := BSS_Start;
-         End_Address_Int : constant Integer_Address := Address_To_Integer(BSS_End);
+         End_Address_Int : constant Integer_Address := System.Storage_Elements.Address_To_Integer(BSS_End);
          B               : Byte with Address => Current_Address;
       begin
-         -- FIX: Compare the numeric positions of the addresses using the correct function.
-         while Address_To_Integer(Current_Address) < End_Address_Int loop
+         -- FIX #2: Use the full, explicit name for the conversion function.
+         while System.Storage_Elements.Address_To_Integer(Current_Address) < End_Address_Int loop
             B := 0;
             Current_Address := Current_Address + 1;
          end loop;
