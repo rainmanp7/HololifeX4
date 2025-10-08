@@ -17,13 +17,6 @@ package body EmergeOS is
    for Byte'Size use 8;
    type Word is mod 2**16;
    pragma Unreferenced (Word);
-   
-   -- =========================================================================
-   -- FIX #1: FORWARD DECLARATION
-   -- We declare the procedure here so other procedures defined before it
-   -- (like Run_Enhanced_Pulse_Cycle) know that it exists.
-   -- =========================================================================
-   procedure Evolve_Specialized_Entities;
 
    -- ================================
    -- MEMORY-MAPPED HARDWARE
@@ -59,7 +52,8 @@ package body EmergeOS is
    for Holo_Matrix'Address use System.Storage_Elements.To_Address(HOLO_BASE);
    pragma Import (Ada, Holo_Matrix);
 
-   -- ... all of your other procedures are perfect and unchanged ...
+   -- ... all of your other procedures (Initialize_UART, Console_Clear, etc.) are perfect ...
+   -- ... they are included here unchanged ...
    procedure Initialize_UART is
    begin
       UART.Initialize;
@@ -262,8 +256,11 @@ package body EmergeOS is
       Enhanced_New_Line;
       Enhanced_New_Line;
    end Initialize_Enhanced_Pulse_Network;
-   
-   -- Full definition is now after the forward declaration
+
+   -- ======================================================================
+   -- FIX #1: DEFINE ALL SUB-PROCEDURES BEFORE THE MAIN LOOP THAT CALLS THEM
+   -- ======================================================================
+
    procedure Evolve_Specialized_Entities is
    begin
       Evolve_Phase(Hardware_Entity_Instance);
@@ -272,7 +269,7 @@ package body EmergeOS is
       Pulse_Network.Entities(2) := Temporal_Entity_Instance.Base;
       Pulse_Network.Cycle_Count := Pulse_Network.Cycle_Count + 1;
    end Evolve_Specialized_Entities;
-   
+
    procedure Process_Entity_Flashes is
       Flashing_Entities : Local_Entity_Array;
       Flash_Count : Natural;
@@ -329,6 +326,7 @@ package body EmergeOS is
          end loop;
       end if;
    end Process_Entity_Flashes;
+
    procedure Check_Network_Consensus is
       Has_Consensus : Boolean;
    begin
@@ -352,6 +350,7 @@ package body EmergeOS is
          end if;
       end if;
    end Check_Network_Consensus;
+
    procedure Display_Network_Status is
       Current_Coherence : Natural;
    begin
@@ -378,6 +377,7 @@ package body EmergeOS is
          Enhanced_New_Line;
       end if;
    end Display_Network_Status;
+
    procedure Run_Enhanced_Pulse_Cycle is
    begin
       Cycle_Count := Cycle_Count + 1;
@@ -402,7 +402,7 @@ package body EmergeOS is
          End_Address_Int : constant Integer_Address := System.Storage_Elements.Address_To_Integer(BSS_End);
          B               : Byte with Address => Current_Address;
       begin
-         -- FIX #2: Use the full, explicit name for the conversion function.
+         -- FIX #2: Use the full, unambiguous name for the conversion function.
          while System.Storage_Elements.Address_To_Integer(Current_Address) < End_Address_Int loop
             B := 0;
             Current_Address := Current_Address + 1;
