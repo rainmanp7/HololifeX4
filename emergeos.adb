@@ -1,4 +1,4 @@
--- emergeos.adb: HoloXlife OS (Final Protocol Harmonization)
+-- emergeos.adb: HoloXlife OS (Final Protocol Harmonization - FIXED)
 with System;
 with System.Storage_Elements;
 use System.Storage_Elements;
@@ -20,16 +20,13 @@ package body EmergeOS is
    pragma Unreferenced (Word);
 
    -- =========================================================================
-   -- FINAL FIX #1: THE CANONICAL IMPORT METHOD
-   -- This is the robust, explicit way to import linker symbols in GNAT for
-   -- bare-metal targets. This replaces the old, failing pragma method.
+   -- LINKER SYMBOL IMPORTS (ROBUST METHOD)
    -- =========================================================================
    BSS_Start : System.Address
    with Import, Convention => Assembly, External_Name => "__bss_start";
    BSS_End   : System.Address
    with Import, Convention => Assembly, External_Name => "__bss_end";
    
-   -- We create our own tool for address conversion.
    function To_Integer is new Unchecked_Conversion (
       Source => System.Address,
       Target => System.Storage_Elements.Integer_Address
@@ -61,6 +58,7 @@ package body EmergeOS is
    VGA_Buffer : aliased VGA_Buffer_Type;
    for VGA_Buffer'Address use System.Storage_Elements.To_Address(VGA_Buffer_Address);
    pragma Import (Ada, VGA_Buffer);
+   pragma Volatile (VGA_Buffer);
 
    HOLO_MATRIX_SIZE : constant := 512;
    type Holo_Matrix_Type is array (0 .. HOLO_MATRIX_SIZE-1,
@@ -68,44 +66,55 @@ package body EmergeOS is
    Holo_Matrix : aliased Holo_Matrix_Type;
    for Holo_Matrix'Address use System.Storage_Elements.To_Address(HOLO_BASE);
    pragma Import (Ada, Holo_Matrix);
+   pragma Volatile (Holo_Matrix);
 
-   -- ... all of your other procedures are perfect and unchanged ...
+   -- UART Wrappers
    procedure Initialize_UART is
    begin
       UART.Initialize;
       UART.Put_Line("UART OK - Simple Driver Active");
    end Initialize_UART;
+
    procedure Serial_Put_Char (C : Character) is
    begin
       UART.Put_Char(C);
    end Serial_Put_Char;
+
    procedure Serial_Put_String (S : String) is
    begin
       UART.Put_String(S);
    end Serial_Put_String;
+
    procedure Serial_Put_Line (S : String) is
    begin
       UART.Put_Line(S);
    end Serial_Put_Line;
+
    function Serial_Get_Char return Character is
    begin
       return UART.Get_Char;
    end Serial_Get_Char;
+
    function Serial_Data_Available return Boolean is
    begin
       return UART.Data_Available;
    end Serial_Data_Available;
+
+   -- Console Management
    Console_Row : Natural := 0;
    Console_Col : Natural := 0;
+
    procedure Initialize_Console is
    begin
       Console_Row := 0;
       Console_Col := 0;
    end Initialize_Console;
+
    function Make_Color (FG, BG : VGA_Color) return Byte is
    begin
       return Byte(VGA_Color'Pos(FG)) or (Byte(VGA_Color'Pos(BG)) * 16);
    end Make_Color;
+
    procedure Console_Clear is
       Color : constant Byte := Make_Color (White, Black);
    begin
@@ -117,6 +126,7 @@ package body EmergeOS is
       Console_Row := 0;
       Console_Col := 0;
    end Console_Clear;
+
    procedure Console_Put_Char (C : Character) is
       Color : constant Byte := Make_Color (White, Black);
    begin
@@ -140,26 +150,31 @@ package body EmergeOS is
          end if;
       end if;
    end Console_Put_Char;
+
    procedure Console_Put_String (S : String) is
    begin
       for I in S'Range loop
          Console_Put_Char (S(I));
       end loop;
    end Console_Put_String;
+
    procedure Console_New_Line is
    begin
       Console_Put_Char (ASCII.LF);
    end Console_New_Line;
+
    procedure Enhanced_Put_String (S : String) is
    begin
       Console_Put_String(S);
       Serial_Put_String(S);
    end Enhanced_Put_String;
+
    procedure Enhanced_New_Line is
    begin
       Console_New_Line;
       Serial_Put_Char(ASCII.LF);
    end Enhanced_New_Line;
+
    procedure Kernel_VGA_Test is
    begin
       VGA_Buffer(1, 0) := ('K', 16#0F#);
@@ -169,13 +184,17 @@ package body EmergeOS is
       VGA_Buffer(1, 4) := ('E', 16#0F#);
       VGA_Buffer(1, 5) := ('L', 16#0F#);
    end Kernel_VGA_Test;
+
+   -- Holographic Memory Management
    Holo_Allocated_Blocks : Natural := 0;
    Holo_Free_Blocks : Natural := HOLO_MATRIX_SIZE * HOLO_MATRIX_SIZE;
+
    procedure Initialize_Holo_Memory is
    begin
       Holo_Allocated_Blocks := 0;
       Holo_Free_Blocks := HOLO_MATRIX_SIZE * HOLO_MATRIX_SIZE;
    end Initialize_Holo_Memory;
+
    procedure Holo_Memory_Init is
    begin
       for I in Holo_Matrix'Range(1) loop
@@ -185,9 +204,11 @@ package body EmergeOS is
       end loop;
       Initialize_Holo_Memory;
    end Holo_Memory_Init;
+
    function Holo_Allocate (Blocks_Needed : Natural) return Natural is
       Found_Blocks : Natural := 0;
-      Start_I, Start_J : Natural := 0;
+      Start_I : Natural := 0;  -- FIXED: Separate initialization
+      Start_J : Natural := 0;
    begin
       for I in Holo_Matrix'Range(1) loop
          for J in Holo_Matrix'Range(2) loop
@@ -210,7 +231,7 @@ package body EmergeOS is
                   end loop;
                   Holo_Allocated_Blocks := Holo_Allocated_Blocks + Blocks_Needed;
                   Holo_Free_Blocks := Holo_Free_Blocks - Blocks_Needed;
-                  return Integer_Address'Pos(HOLO_BASE) + (Start_I * HOLO_MATRIX_SIZE + Start_J) * 16;
+                  return Natural(HOLO_BASE) + (Start_I * HOLO_MATRIX_SIZE + Start_J) * 16;
                end if;
             else
                Found_Blocks := 0;
@@ -219,6 +240,7 @@ package body EmergeOS is
       end loop;
       return 0;
    end Holo_Allocate;
+
    procedure Enhanced_Put_Natural (N : Natural) is
    begin
       if N > 9 then
@@ -226,6 +248,8 @@ package body EmergeOS is
       end if;
       Enhanced_Put_String(String'(1 => Character'Val(Character'Pos('0') + (N mod 10))));
    end Enhanced_Put_Natural;
+
+   -- Entity Management
    type Entity_Type is (Entity_CPU, Entity_Memory, Entity_Device, Entity_Filesystem);
    type Entity_Status is (Active);
    type Entity_Record is record
@@ -235,16 +259,20 @@ package body EmergeOS is
       Priority : Natural;
       Memory_Base : Natural;
    end record;
+
    Max_Entities : constant := 256;
    Entity_Table : array (1 .. Max_Entities) of Entity_Record;
    Entity_Count : Natural := 0;
    pragma Unreferenced (Entity_Table);
    pragma Unreferenced (Entity_Type);
    pragma Unreferenced (Entity_Status);
+
    procedure Initialize_Entities is
    begin
       Entity_Count := 0;
    end Initialize_Entities;
+
+   -- Pulse Network
    Pulse_Network : Sync_Network;
    Hardware_Entity_Instance : Hardware_Anchor;
    Temporal_Entity_Instance : Temporal_Anchor;
@@ -252,6 +280,7 @@ package body EmergeOS is
    Total_Flashes : Natural := 0;
    Network_Coherence : Natural := 0;
    Last_Consensus_Cycle : Natural := 0;
+
    procedure Initialize_Enhanced_Pulse_Network is
    begin
       Initialize_Network(Pulse_Network);
@@ -272,6 +301,7 @@ package body EmergeOS is
       Enhanced_New_Line;
       Enhanced_New_Line;
    end Initialize_Enhanced_Pulse_Network;
+
    procedure Evolve_Specialized_Entities is
    begin
       Evolve_Phase(Hardware_Entity_Instance);
@@ -280,6 +310,7 @@ package body EmergeOS is
       Pulse_Network.Entities(2) := Temporal_Entity_Instance.Base;
       Pulse_Network.Cycle_Count := Pulse_Network.Cycle_Count + 1;
    end Evolve_Specialized_Entities;
+
    procedure Process_Entity_Flashes is
       Flashing_Entities : Local_Entity_Array;
       Flash_Count : Natural;
@@ -336,6 +367,7 @@ package body EmergeOS is
          end loop;
       end if;
    end Process_Entity_Flashes;
+
    procedure Check_Network_Consensus is
       Has_Consensus : Boolean;
    begin
@@ -359,6 +391,7 @@ package body EmergeOS is
          end if;
       end if;
    end Check_Network_Consensus;
+
    procedure Display_Network_Status is
       Current_Coherence : Natural;
    begin
@@ -385,6 +418,7 @@ package body EmergeOS is
          Enhanced_New_Line;
       end if;
    end Display_Network_Status;
+
    procedure Run_Enhanced_Pulse_Cycle is
    begin
       Cycle_Count := Cycle_Count + 1;
@@ -395,39 +429,71 @@ package body EmergeOS is
    end Run_Enhanced_Pulse_Cycle;
 
    -- =========================================================================
-   -- MAIN OS PROCEDURE (FINAL HARMONIZATION)
+   -- BSS CLEARING (FIXED VERSION WITH SAFETY CHECKS)
+   -- =========================================================================
+   procedure Clear_BSS_Safe is
+      type Byte_Ptr is access all Byte;
+      function To_Byte_Ptr is new Unchecked_Conversion(System.Address, Byte_Ptr);
+      
+      Start_Addr : constant Integer_Address := To_Integer(BSS_Start);
+      End_Addr   : constant Integer_Address := To_Integer(BSS_End);
+      Current    : Integer_Address := Start_Addr;
+   begin
+      -- Safety check: ensure BSS region is valid
+      if Start_Addr >= End_Addr then
+         Serial_Put_Line("WARNING: BSS_Start >= BSS_End, skipping clear");
+         return;
+      end if;
+      
+      Serial_Put_String("BSS Clear: Start=0x");
+      Serial_Put_String("??????"); -- Add hex output if you have it
+      Serial_Put_String(" End=0x");
+      Serial_Put_String("??????");
+      Serial_Put_Line("");
+      
+      -- Clear BSS byte by byte
+      while Current < End_Addr loop
+         declare
+            B : Byte with Address => To_Address(Current), Volatile, Import;
+         begin
+            B := 0;
+         end;
+         Current := Current + 1;
+      end loop;
+      
+      Serial_Put_Line("BSS Clear: COMPLETE");
+   end Clear_BSS_Safe;
+
+   -- =========================================================================
+   -- MAIN OS PROCEDURE (FINAL HARMONIZATION - FIXED)
    -- =========================================================================
    procedure EmergeOS is
    begin
-      -- STEP 1: MANUALLY CLEAR THE BSS SECTION
-      declare
-         Current_Address : System.Address := BSS_Start;
-         End_Address_Int : constant Integer_Address := To_Integer(BSS_End);
-         B               : Byte with Address => Current_Address;
-      begin
-         -- FINAL FIX #2: Use our new, self-made conversion function.
-         while To_Integer(Current_Address) < End_Address_Int loop
-            B := 0;
-            Current_Address := Current_Address + 1;
-         end loop;
-      end;
-
-      -- STEP 2: Now we can proceed with the rest of our OS initialization.
+      -- CRITICAL: Initialize UART FIRST before any other output
       Initialize_UART;
-      Serial_Put_Line("=== HOLOXLIFE OS KERNEL AWAKE ===");
-      Serial_Put_Line("BSS Cleared. Runtime stable. Protocol Synchronized.");
+      Serial_Put_Line("=== HOLOXLIFE OS KERNEL ENTRY ===");
+      
+      -- Clear BSS with safety checks
+      Clear_BSS_Safe;
+      
+      Serial_Put_Line("Runtime stable. Protocol Synchronized.");
 
+      -- VGA and Console
       Kernel_VGA_Test;
       Initialize_Console;
+      Console_Clear;
+      
+      -- Initialize subsystems
       Initialize_Holo_Memory;
       Initialize_Entities;
-      Console_Clear;
+      
       Serial_Put_Line("HoloXlife OS - Protocol Step 7");
       Serial_Put_Line("Enhanced Pulse Synchronization");
       Serial_Put_Line("Hardware + Temporal Entities Active");
       Serial_Put_Line("Serial Output: QEMU Capture Enabled");
       Serial_Put_Line("=============================================");
       Serial_Put_Line("");
+      
       Enhanced_Put_String ("HoloXlife OS - Protocol Step 7");
       Enhanced_New_Line;
       Enhanced_Put_String ("Enhanced Pulse Synchronization");
@@ -437,15 +503,18 @@ package body EmergeOS is
       Enhanced_Put_String ("=============================================");
       Enhanced_New_Line;
       Enhanced_New_Line;
+      
       Enhanced_Put_String ("Initializing Enhanced Pulse Network...");
       Enhanced_New_Line;
       Initialize_Enhanced_Pulse_Network;
+      
       Enhanced_Put_String ("Initializing Holographic Memory...");
       Enhanced_New_Line;
       Holo_Memory_Init;
       Enhanced_Put_String ("- 512x512 Matrix: OPERATIONAL");
       Enhanced_New_Line;
       Enhanced_New_Line;
+      
       Enhanced_Put_String ("=============================================");
       Enhanced_New_Line;
       Enhanced_Put_String ("PHASE 3: FIREFLY SYNCHRONIZATION ACTIVE");
@@ -459,10 +528,12 @@ package body EmergeOS is
       Enhanced_Put_String ("=============================================");
       Enhanced_New_Line;
       Enhanced_New_Line;
+      
       loop
          Run_Enhanced_Pulse_Cycle;
          exit when Cycle_Count >= 100 or Total_Flashes >= 15;
       end loop;
+      
       Enhanced_New_Line;
       Enhanced_Put_String ("=============================================");
       Enhanced_New_Line;
@@ -491,6 +562,9 @@ package body EmergeOS is
       Enhanced_New_Line;
       Enhanced_Put_String ("=============================================");
       Enhanced_New_Line;
+      
+      Serial_Put_Line("Entering HLT loop - OS complete");
+      
       loop
          Asm ("hlt", Volatile => True);
       end loop;
