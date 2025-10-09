@@ -1,9 +1,10 @@
-# HoloXlife Pure Ada OS Makefile - v5 Protocol Harmonized
+# HoloXlife Pure Ada OS Makefile - v6 BOOT FIX
 #
-# Changes:
-# - Removed logical contradiction of a second bootloader (boot.adb).
-# - Vastly simplified the 'boot.bin' rule to let NASM handle padding internally.
-# - Improved 'run' command for better debugging output.
+# Critical fixes:
+# - Changed from floppy (-fda) to hard disk (-hda) for reliable booting
+# - Enhanced debug output
+# - Better error checking
+# - Proper boot sector verification
 
 # Tools
 ASM = nasm
@@ -20,7 +21,7 @@ ADAFLAGS = -x ada -gnat2012 -gnatwe -gnatwo -gnatp -O2 \
 # Linker flags
 LDFLAGS = -m elf_i386 -T linker.ld --nmagic -nostdlib -static
 
-.PHONY: all clean run
+.PHONY: all clean run debug test-boot
 
 all: emergeos.img
 
@@ -54,54 +55,120 @@ temporal_entity.o: temporal_entity.adb temporal_entity.ads pulse_types.ads gnat.
 uart.o: uart.adb uart.ads gnat.adc
 	$(GCC) $(ADAFLAGS) uart.adb -o uart.o
 
-# Link kernel - REMOVED dependency on non-existent 'boot.o'
+# Link kernel
 kernel.bin: emergeos.o pulse_types.o pulse_entities.o pulse_sync.o hardware_entity.o temporal_entity.o uart.o
-	@echo "Linking HoloXlife Ada Kernel..."
+	@echo "=== Linking HoloXlife Ada Kernel ==="
 	$(LD) $(LDFLAGS) -o kernel.elf $^
 	$(OBJCOPY) -O binary kernel.elf kernel.bin
-	@echo "✅ Kernel: $$(wc -c < kernel.bin) bytes"
+	@KSIZE=$$(wc -c < kernel.bin); \
+	echo "✅ Kernel: $$KSIZE bytes"; \
+	if [ $$KSIZE -gt 1048576 ]; then \
+		echo "⚠️  WARNING: Kernel exceeds 1MB!"; \
+	fi
 
-# Build bootloader - SIMPLIFIED AND ROBUST
-# NASM's 'times' directive handles all padding automatically.
+# Build bootloader with verification
 boot.bin: boot.asm kernel.bin
-	@echo "Building bootloader..."
+	@echo "=== Building Bootloader ==="
 	@KERNEL_SIZE_BYTES=$$(wc -c < kernel.bin); \
 	SECTORS_TO_LOAD=$$(( (KERNEL_SIZE_BYTES + 511) / 512 )); \
 	echo "Kernel: $$KERNEL_SIZE_BYTES bytes => $$SECTORS_TO_LOAD sectors"; \
 	\
 	$(ASM) -f bin \
 		-D KERNEL_SECTORS_TO_LOAD=$$SECTORS_TO_LOAD \
-		-D BOOT_DRIVE=0x00 \
+		-D BOOT_DRIVE=0x80 \
 		boot.asm -o boot.bin; \
 	\
 	FINAL_SIZE=$$(wc -c < boot.bin); \
 	if [ $$FINAL_SIZE -ne 512 ]; then \
-		echo "❌ FATAL: Bootloader size is $$FINAL_SIZE bytes, must be 512."; \
+		echo "❌ FATAL: Bootloader is $$FINAL_SIZE bytes, must be 512"; \
 		exit 1; \
 	fi; \
-	echo "✅ Bootloader: 512 bytes (protocol compliant)"
+	\
+	BOOT_SIG=$$(hexdump -s 510 -n 2 -e '1/1 "%02x"' boot.bin); \
+	if [ "$$BOOT_SIG" != "55aa" ]; then \
+		echo "❌ FATAL: Boot signature is $$BOOT_SIG, should be 55aa"; \
+		exit 1; \
+	fi; \
+	echo "✅ Bootloader: 512 bytes, signature: 55aa"
 
-# Create final OS disk image
+# Create final OS disk image (HARD DISK format for reliability)
 emergeos.img: boot.bin kernel.bin
-	@echo "Creating HoloXlife OS disk image..."
-	dd if=/dev/zero of=$@ bs=512 count=2880 >/dev/null 2>&1
-	dd if=boot.bin of=$@ conv=notrunc >/dev/null 2>&1
-	dd if=kernel.bin of=$@ bs=512 seek=1 conv=notrunc >/dev/null 2>&1
-	@echo "✅ HoloXlife OS image created: emergeos.img"
+	@echo "=== Creating HoloXlife OS Disk Image ==="
+	dd if=/dev/zero of=$@ bs=512 count=2880 status=none
+	dd if=boot.bin of=$@ conv=notrunc status=none
+	dd if=kernel.bin of=$@ bs=512 seek=1 conv=notrunc status=none
+	@echo "✅ Image created: emergeos.img ($$(du -h emergeos.img | cut -f1))"
+	@echo ""
+	@echo "Boot sector verification:"
+	@hexdump -C emergeos.img | head -n 2
+	@echo "..."
+	@hexdump -C emergeos.img -s 510 -n 2
 
-# Run in QEMU with enhanced debugging
+# Run in QEMU - FIXED: Use -hda instead of -fda
 run: emergeos.img
-	@echo "Booting HoloXlife Pure Ada Operating System..."
-	@echo "  - VGA output: QEMU window (SDL)"
-	@echo "  - Serial output: serial.log"
-	@echo "  - QEMU debug log: qemu.log"
+	@echo "=========================================="
+	@echo "  Booting HoloXlife Pure Ada OS"
+	@echo "=========================================="
+	@echo "VGA output    : QEMU window"
+	@echo "Serial output : serial.log"
+	@echo "Debug log     : qemu.log"
+	@echo ""
 	qemu-system-i386 \
-		-fda emergeos.img \
+		-drive format=raw,file=emergeos.img,if=ide,index=0 \
 		-serial file:serial.log \
-		-D qemu.log -d int,cpu_reset,guest_errors \
-		-display sdl
+		-D qemu.log \
+		-d cpu_reset,int,guest_errors \
+		-m 64M \
+		-no-reboot \
+		-no-shutdown
+	@echo ""
+	@echo "=== Serial Output ==="
+	@cat serial.log 2>/dev/null || echo "No serial output"
+	@echo ""
+	@echo "=== Checking for errors in qemu.log ==="
+	@grep -i "exception\|error\|triple" qemu.log | head -20 || echo "No critical errors"
 
-# Clean up all generated files
+# Debug run with maximum verbosity
+debug: emergeos.img
+	@echo "=== DEBUG MODE ==="
+	qemu-system-i386 \
+		-drive format=raw,file=emergeos.img,if=ide,index=0 \
+		-serial stdio \
+		-D qemu_debug.log \
+		-d cpu_reset,int,cpu,in_asm \
+		-m 64M \
+		-no-reboot \
+		-no-shutdown
+
+# Test bootloader only (with diagnostic version)
+test-boot: boot_diagnostic.bin
+	@echo "=== Testing Bootloader ==="
+	dd if=/dev/zero of=test.img bs=512 count=100 status=none
+	dd if=boot_diagnostic.bin of=test.img conv=notrunc status=none
+	qemu-system-i386 \
+		-drive format=raw,file=test.img,if=ide,index=0 \
+		-serial stdio \
+		-nographic
+
+boot_diagnostic.bin: boot_diagnostic.asm
+	$(ASM) -f bin boot_diagnostic.asm -o boot_diagnostic.bin
+	@echo "Diagnostic bootloader size: $$(wc -c < boot_diagnostic.bin) bytes"
+
+# Clean up
 clean:
 	rm -f *.bin *.o *.img *.elf *.ali gnat.adc *.log
-	@echo "Build environment cleaned."
+	@echo "✨ Build environment cleaned"
+
+# Show what's in the image
+inspect: emergeos.img
+	@echo "=== Disk Image Contents ==="
+	@echo "Total size: $$(du -h emergeos.img | cut -f1)"
+	@echo ""
+	@echo "Boot sector (first 32 bytes):"
+	@hexdump -C emergeos.img -n 32
+	@echo ""
+	@echo "Boot signature (bytes 510-511):"
+	@hexdump -C emergeos.img -s 510 -n 2
+	@echo ""
+	@echo "Kernel start (sector 1, first 32 bytes):"
+	@hexdump -C emergeos.img -s 512 -n 32
